@@ -12,7 +12,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 const constructProps: IotToLambdaProps = {
   lambdaFunctionProps: {
     code: lambda.Code.fromAsset(`lambda`),
-    runtime: lambda.Runtime.NODEJS_16_X,
+    runtime: lambda.Runtime.NODEJS_20_X,
     handler: "index.handler",
   },
   iotTopicRuleProps: {
