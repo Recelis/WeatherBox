@@ -1,8 +1,9 @@
-#include "secrets.h"
 #include <WiFiClientSecure.h>
 #include <MQTTClient.h>
 #include <ArduinoJson.h>
 #include "WiFi.h"
+#include <Preferences.h>
+#include "environment.h"
 
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
@@ -10,9 +11,27 @@
 
 WiFiClientSecure net = WiFiClientSecure();
 MQTTClient client = MQTTClient(256);
+Environment environment = Environment(); 
+
+void messageHandler(String &topic, String &payload) {
+  Serial.println("incoming: " + topic + " - " + payload);
+
+//  StaticJsonDocument<200> doc;
+//  deserializeJson(doc, payload);
+//  const char* message = doc["message"];
+}
 
 void connectAWS()
 {
+  // Get variables from EEPROM (Preference.h)
+  const char* THING_NAME = environment.retrieveFromPreference(environment.THING_NAME_KEY);
+  const char* WIFI_SSID = environment.retrieveFromPreference(environment.WIFI_SSID_KEY);
+  const char* WIFI_PASSWORD = environment.retrieveFromPreference(environment.WIFI_PASSWORD_KEY);
+  const char* AWS_CERT_CA = environment.retrieveFromPreference(environment.AWS_CERT_CA_KEY);
+  const char* AWS_CERT_CRT = environment.retrieveFromPreference(environment.AWS_CERT_CRT_KEY);
+  const char* AWS_CERT_PRIVATE = environment.retrieveFromPreference(environment.AWS_CERT_PRIVATE_KEY);
+  const char* AWS_IOT_ENDPOINT = environment.retrieveFromPreference(environment.AWS_IOT_ENDPOINT_KEY);
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -23,31 +42,32 @@ void connectAWS()
     Serial.print(".");
   }
   Serial.println("Connected!");
-//   // Configure WiFiClientSecure to use the AWS IoT device credentials
-//   net.setCACert(AWS_CERT_CA);
-//   net.setCertificate(AWS_CERT_CRT);
-//   net.setPrivateKey(AWS_CERT_PRIVATE);
+  // Configure WiFiClientSecure to use the AWS IoT device credentials
+  net.setCACert(AWS_CERT_CA);
+  net.setCertificate(AWS_CERT_CRT);
+  net.setPrivateKey(AWS_CERT_PRIVATE);
 
 //   // Connect to the MQTT broker on the AWS endpoint we defined earlier
-//   client.begin(AWS_IOT_ENDPOINT, 8883, net);
+  client.begin(AWS_IOT_ENDPOINT, 8883, net);
 
 //   // Create a message handler
-//   client.onMessage(messageHandler);
+  // client.onMessage(messageHandler);
 
-//   Serial.print("Connecting to AWS IOT");
+  Serial.println("Connecting to AWS IOT");
 
-//   while (!client.connect(THINGNAME)) {
-//     Serial.print(".");
-//     delay(100);
-//   }
+  while (!client.connect(THING_NAME)) {
+    Serial.print(".");
+    delay(100);
+  }
 
-//   if(!client.connected()){
-//     Serial.println("AWS IoT Timeout!");
-//     return;
-//   }
+  if(!client.connected()){
+    Serial.println("AWS IoT Timeout!");
+    return;
+  }
+  Serial.println("Connected to AWS IOT!");
 
-//   // Subscribe to a topic
-//   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
+  // Subscribe to a topic
+  client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
 
 //   Serial.println("AWS IoT Connected!");
 }
@@ -63,16 +83,9 @@ void connectAWS()
 //   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
 // }
 
-// void messageHandler(String &topic, String &payload) {
-//   Serial.println("incoming: " + topic + " - " + payload);
-
-// //  StaticJsonDocument<200> doc;
-// //  deserializeJson(doc, payload);
-// //  const char* message = doc["message"];
-// }
-
 void setup() {
   Serial.begin(9600);
+  environment.begin("ESP32Monitoring");
   connectAWS();
 }
 

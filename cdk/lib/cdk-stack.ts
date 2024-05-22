@@ -9,6 +9,7 @@ import {
 } from "@aws-solutions-constructs/aws-iot-lambda";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { ThingWithCert } from "cdk-iot-core-certificates";
+import { things } from "../things/create-things";
 
 export const stackName = "ESP32Monitoring";
 
@@ -41,31 +42,34 @@ export class CdkStack extends Stack {
     // Creates new AWS IoT Thing called thingName
     // Saves certs to /devices/thingName/certPem and /devices/thingName/privKey
     // thingName and paramPrefix cannot start with '/'
-    const { thingArn, certId, certPem, privKey } = new ThingWithCert(
-      this,
-      "ThingWithCert",
-      {
-        thingName: `${stackName}IotThing`,
-        saveToParamStore: true,
-        paramPrefix: "devices",
-      }
-    );
+    // { thingArn, certId, certPem, privKey }
+    for (const thing of things) {
+      const thingWIthCert = new ThingWithCert(
+        this,
+        `ThingWithCert${thing.suffix}`,
+        {
+          thingName: `${stackName}IotThing${thing.suffix}`,
+          saveToParamStore: true,
+          paramPrefix: "devices",
+        }
+      );
 
-    new CfnOutput(this, "Output-ThingArn", {
-      value: thingArn,
-    });
+      new CfnOutput(this, `Output-ThingArn-${thing.suffix}`, {
+        value: thingWIthCert.thingArn,
+      });
 
-    new CfnOutput(this, "Output-CertId", {
-      value: certId,
-    });
+      new CfnOutput(this, `Output-CertId-${thing.suffix}`, {
+        value: thingWIthCert.certId,
+      });
 
-    new CfnOutput(this, "Output-CertPem", {
-      value: certPem,
-    });
+      new CfnOutput(this, `Output-CertPem-${thing.suffix}`, {
+        value: thingWIthCert.certPem,
+      });
 
-    new CfnOutput(this, "Output-PrivKey", {
-      value: privKey,
-    });
+      new CfnOutput(this, `Output-PrivKey-${thing.suffix}`, {
+        value: thingWIthCert.privKey,
+      });
+    }
 
     const queue = new sqs.Queue(this, `${stackName}Queue`, {
       visibilityTimeout: Duration.seconds(300),
