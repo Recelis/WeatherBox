@@ -20,6 +20,7 @@
     "typescript": "~5.4.5"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.583.0",
     "@aws-solutions-constructs/aws-iot-lambda": "^2.57.0",
     "aws-cdk-lib": "2.140.0",
     "aws-sdk": "^2.1622.0",

@@ -36,7 +36,17 @@ AWS Device Private Key and Cert
 
 Note! There are size limitations of the Preferences.h library. Only allows 15 characters for the keyname and 4000 characters for the value.
 
+Note! We use `cdk-iot-core-certificates` to set up multiple Things and their certs in AWS. While this is powerful, it also gives each Thing really wide range authorization and there is no way to set a more fine-grained policies.
+
 ## How the code works
+
+### `cdk-iot-core-certificates`
+
+This is a L3 construct that creates a thing and their cert in AWS with CDK. It was created by AWS so it is actually an official package.
+
+### `@aws-solutions-constructs/aws-iot-lambda`
+
+This is a AWS Solutions Construct which integrates a Lambda to a MQTT topic. While it does help make it easier to use an existing lambda, it may be better to just use a IoT Topic Rule with an action to add the message to SQS.
 
 ## Adding another monitoring Device
 
