@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include "WiFi.h"
 #include <Preferences.h>
+#include <DHT.h>
 #include "environment.h"
 
 // The MQTT topics that this device should publish/subscribe
@@ -14,16 +15,20 @@
 #define LOOP_MICROSECONDS 100
 #define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE * MICROSECONDS_IN_SECOND
 
+#define DHTPIN 13
+#define DHTTYPE DHT22
+
 WiFiClientSecure net = WiFiClientSecure();
 MQTTClient client = MQTTClient(256);
 Environment environment = Environment();
+DHT dht(DHTPIN, DHTTYPE);
 
 void messageHandler(String &topic, String &payload) {
   Serial.println("incoming: " + topic + " - " + payload);
 
-//  StaticJsonDocument<200> doc;
-//  deserializeJson(doc, payload);
-//  const char* message = doc["message"];
+  //  StaticJsonDocument<200> doc;
+  //  deserializeJson(doc, payload);
+  //  const char* message = doc["message"];
 }
 
 void connectWifi() {
@@ -83,10 +88,22 @@ void connectAWS()
 
 void publishMessage()
 {
+  float temp = dht.readTemperature();
+  Serial.print("Temperature: ");
+  Serial.println(temp);
+  if (isnan(temp)) {
+    Serial.println("Failed to read temperature from sensor");
+    return;
+  }
+
+  const char* THING_NAME = environment.retrieveFromPreference(environment.THING_NAME_KEY);
+
   StaticJsonDocument<200> doc;
   doc["time"] = millis();
-  doc["sensor_a0"] = 2048; // analogRead(0);
+  doc["temp"] = temp;
+  doc["monitorName"] = THING_NAME;
   char jsonBuffer[512];
+  
   serializeJson(doc, jsonBuffer); // print to client
 
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
@@ -100,6 +117,7 @@ int loopIncrement = 0;
 
 void setup() {
   Serial.begin(9600);
+  dht.begin();
   environment.begin("ESP32Monitoring");
   connectWifi();
   connectAWS();

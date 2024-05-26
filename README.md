@@ -16,7 +16,7 @@ lib_deps=
     bblanchon/ArduinoJson @^7.0.4
 ```
 
-You can set the exact versions as well as allowing for minor upgrades.
+You can set the exact versions as well as allowing for minor upgrades. These packages can be found in the PlatformIO Registry.
 
 ### Set up AWS CDK to deploy your monitoring!
 
