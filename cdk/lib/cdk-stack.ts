@@ -97,10 +97,8 @@ export class CdkStack extends Stack {
     );
 
     iotRuleLambda.addToRolePolicy(iotPublishPolicy);
-    // topic.addSubscription(new subs.SqsSubscription(queue));
     const iotToLambdaProps: IotToLambdaProps = {
       existingLambdaObj: iotRuleLambda,
-      // what is an iotTopicRule?
       iotTopicRuleProps: {
         topicRulePayload: {
           ruleDisabled: false,
