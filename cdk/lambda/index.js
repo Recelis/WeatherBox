@@ -5,6 +5,7 @@ const {
 
 exports.handler = async (event) => {
   const client = new IoTDataPlaneClient();
+  event["timestamp"] = (new Date()).getTime();
   const input = {
     // PublishRequest
     topic: "esp32/sub", // required
