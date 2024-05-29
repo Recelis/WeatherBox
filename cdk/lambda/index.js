@@ -10,7 +10,7 @@ exports.handler = async (event) => {
     // PublishRequest
     topic: "esp32/sub", // required
     qos: 0,
-    payload: Buffer.from(JSON.stringify(event)), // e.g. Buffer.from("") or new TextEncoder().encode("")
+    payload: Buffer.from(JSON.stringify(event))
   };
   const command = new PublishCommand(input);
   try {
@@ -21,28 +21,3 @@ exports.handler = async (event) => {
     console.log(error);
   }
 };
-
-/*
-const iotdata = new IotData({
-  endpoint: process.env.AWS_IOT_ENDPOINT,
-});
-
-exports.handler = async (event) => {
-  console.log("Event => " + JSON.stringify(event));
-  const params = {
-    topic: "esp32/sub",
-    payload: JSON.stringify(event),
-    qos: 0,
-  };
-  console.log(process.env.AWS_IOT_ENDPOINT);
-  return iotdata
-    .publish(params, function (err, data) {
-      if (err) {
-        console.log("ERROR => " + JSON.stringify(err));
-      } else {
-        console.log("Success");
-      }
-    })
-    .promise();
-};
-*/

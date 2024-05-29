@@ -49,7 +49,19 @@ This is a L3 construct that creates a thing and their cert in AWS with CDK. It w
 This is a AWS Solutions Construct which integrates a Lambda to a MQTT topic. While it does help make it easier to use an existing lambda, it may be better to just use a IoT Topic Rule with an action to add the message to SQS.
 
 ## Adding another monitoring Device
+Things are defined in the `create-things.ts` file in the cdk folder. You can add a new thing by adding to the things array. Please note, there is no uniqueness check on the thing suffix. You have to do this manually.
 
-## Additional Feature/The Future
+```Typescript
+interface ICreateThing {
+  suffix: string;
+}
 
-### Power
+export const things: ICreateThing[] = [
+  {
+    suffix: "Monitor1",
+  },
+  {
+    suffix: "Monitor2",
+  },
+];
+```
