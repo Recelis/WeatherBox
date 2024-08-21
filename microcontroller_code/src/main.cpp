@@ -15,7 +15,7 @@
 #define LOOP_MICROSECONDS 100
 #define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE * MICROSECONDS_IN_SECOND
 
-#define DHTPIN 13
+#define DHTPIN 23
 #define DHTTYPE DHT22
 
 WiFiClientSecure net = WiFiClientSecure();
