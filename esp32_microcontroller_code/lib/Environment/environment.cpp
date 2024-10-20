@@ -12,6 +12,7 @@ Environment::Environment()
     AWS_CERT_CA_KEY = "AWS_CERT_CA";
     AWS_CERT_CRT_KEY = "AWS_CERT_CRT";
     AWS_CERT_PRIVATE_KEY = "AWS_CERT_PRIVT";
+    WEATHER_API_KEY = "WEATHERAPI_KEY";
 }
 
 void Environment::begin(const char* environmentNamespace) {

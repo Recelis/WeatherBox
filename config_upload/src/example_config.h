@@ -1,10 +1,11 @@
 #include <pgmspace.h>
 
 
-const char THING_NAME[] = "ESP32Monitoring[Suffix]";
+const char THING_NAME[] = "ESP32MonitoringWeatherBox";
 const char WIFI_SSID[] = "";
 const char WIFI_PASSWORD[] = "";
 const char AWS_IOT_ENDPOINT[] = "";
+const char WEATHER_API_KEY[] = "";
 
 // Amazon Root CA 1
 static const char AWS_CERT_CA[] PROGMEM = R"EOF(

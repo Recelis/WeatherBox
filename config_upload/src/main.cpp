@@ -2,13 +2,14 @@
 #include <Preferences.h>
 #include "config.h"
 
-const char* THING_NAME_KEY = "THING_NAME";
+const char* THING_NAME_KEY = "ESP32MonitoringWeatherBox";
 const char* WIFI_SSID_KEY = "WIFI_SSID";
 const char* WIFI_PASSWORD_KEY = "WIFI_PASSWORD";
 const char* AWS_IOT_ENDPOINT_KEY = "AWS_IOT_ENDPNT";
 const char* AWS_CERT_CA_KEY = "AWS_CERT_CA";
 const char* AWS_CERT_CRT_KEY = "AWS_CERT_CRT";
 const char* AWS_CERT_PRIVATE_KEY = "AWS_CERT_PRIVT";
+const char* WEATHER_API_KEY = "WEATHERAPI_KEY";
 
 void setup() {
   Serial.begin(9600);
@@ -24,6 +25,7 @@ void setup() {
   preferences.putString(AWS_CERT_CA_KEY, AWS_CERT_CA);
   preferences.putString(AWS_CERT_CRT_KEY, AWS_CERT_CRT);
   preferences.putString(AWS_CERT_PRIVATE_KEY, AWS_CERT_PRIVATE);
+  preferences.putString(WEATHER_API_KEY, WEATHER_API);
 
   Serial.println("Finished writing values to EEPROM");
   Serial.println("Validating values in EEPROM...");
@@ -35,6 +37,7 @@ void setup() {
   isValidate = (preferences.getString(AWS_CERT_CA_KEY, AWS_CERT_CA)).equals(AWS_CERT_CA);
   isValidate = (preferences.getString(AWS_CERT_CRT_KEY, AWS_CERT_CRT)).equals(AWS_CERT_CRT);
   isValidate = (preferences.getString(AWS_CERT_PRIVATE_KEY, AWS_CERT_PRIVATE)).equals(AWS_CERT_PRIVATE);
+  isValidate = (preferences.getString(WEATHER_API_KEY, WEATHER_API)).equals(WEATHER_API);
   if (isValidate == false) {
     Serial.println("EEPROM did not save values correctly.");
   }

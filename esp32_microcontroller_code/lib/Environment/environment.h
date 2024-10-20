@@ -19,6 +19,7 @@ public:
     const char* AWS_CERT_CA_KEY;
     const char* AWS_CERT_CRT_KEY;
     const char* AWS_CERT_PRIVATE_KEY;
+    const char* WEATHER_API_KEY;
 
     void begin(const char* environmentNamespace);
     char* retrieveFromPreference(const char* key);

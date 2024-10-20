@@ -6,6 +6,48 @@
 #include <DHT.h>
 #include "environment.h"
 
+#include <Location.h>
+#include <Weather.h>
+#include <Communication.h>
+#include <Environment.h>
+#include <DayOfWeek.h>
+
+SET_LOOP_TASK_STACK_SIZE( 16*1024 );
+
+/*
+  ESP32 Weather built on PlatformIO.
+
+    Functionality
+      Config Mode
+        sets EEPROM using Preferences.h for wifi ssid and password
+
+      Start
+        on start, will get location of Weather Viewer using IP address
+
+      Every half hour
+        calls open-weather endpoint
+        extracts 7 days weather data using ArduinoJSON and builds an object containing resulting data
+        serialises results and sends to Arduino Mega.
+
+*/
+
+const char *locationURL = "https://ipapi.co/json/";
+
+// initialise Location object
+Location myLocation;
+
+// initialise weather object
+Weather myWeather;
+
+// initialise communication object
+Communication myCommunication;
+
+// initialise environment object
+Environment myEnvironment;
+
+// initialise day of week object
+DayOfWeek myDayOfWeek;
+
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
@@ -115,24 +157,50 @@ void publishMessage()
 
 int loopIncrement = 0;
 
+void getWeatherData()
+{
+  myLocation.getLocation(locationURL);
+  const char* WEATHER_API_KEY = environment.retrieveFromPreference(environment.WEATHER_API_KEY);
+  String weatherURLString = "https://api.pirateweather.net/forecast/" + String(WEATHER_API_KEY) + "/"  
+    + String(myLocation.getLatitude()) 
+    + "," + String(myLocation.getLongitude()) 
+    + "?&units=ca&exclude=minutely,hourly,alerts";
+  Serial.println(weatherURLString);
+  myWeather.setWeatherURL(weatherURLString);
+  myDayOfWeek.requestDayOfWeek(myLocation.getLatitude(), myLocation.getLongitude());
+}
+
 void setup() {
   Serial.begin(9600);
   dht.begin();
   environment.begin("ESP32Monitoring");
   connectWifi();
-  connectAWS();
-  publishMessage();
+  getWeatherData();
+  // connectAWS();
+  // publishMessage();
 }
 
 void loop() {
-  if (!client.connected()) {
-    connectAWS();
+  // Don't publish message
+  // if (!client.connected()) {
+  //   connectAWS();
+  // }
+
+  // client.loop();
+  // delay(LOOP_MICROSECONDS);
+  // if (loopIncrement > (PUBLISH_MICROSECONDS / LOOP_MICROSECONDS)) {
+  //   publishMessage();
+  //   loopIncrement = 0;
+  // };
+  // loopIncrement++;
+
+  // get weather and display on screen
+  bool isNewData = myWeather.getWeather();
+  // if newWeatherData then send to Mega
+  if (isNewData)
+  {
+    Serial.println("Sending new Data:");
+    char * sevenDayForecast = myWeather.getSevenDayForecast();
+    myCommunication.sendData(sevenDayForecast, myLocation.getCity(), myDayOfWeek.getDayOfWeek());
   }
-  client.loop();
-  delay(LOOP_MICROSECONDS);
-  if (loopIncrement > (PUBLISH_MICROSECONDS / LOOP_MICROSECONDS)) {
-    publishMessage();
-    loopIncrement = 0;
-  };
-  loopIncrement++;
 }
