@@ -4,9 +4,9 @@ Weather::Weather()
 {
 }
 
-void Weather::setWeatherURL(String urlString) 
+void Weather::setWeatherURL(String urlString)
 {
-    char* url = new char[urlString.length() + 1]; // set size of string block
+    char *url = new char[urlString.length() + 1]; // set size of string block
     strcpy(url, urlString.c_str());
     weatherURL = url;
 }
@@ -18,10 +18,11 @@ bool Weather::getWeather()
     {
         callWeatherAPI();
         // send Serial data to Mega
-        
-        if (isNewData) {
+
+        if (isNewData)
+        {
             lastTime = millis(); // reset only if successful
-            return true; // sending new data only if have been set true by weather response
+            return true;         // sending new data only if have been set true by weather response
         }
     }
     return false; // sending old data
@@ -40,36 +41,43 @@ void Weather::callWeatherAPI()
         Serial.println(httpResponseCode);
         // get length of document (is -1 when Server sends no Content-Length header)
         int len = http.getSize();
-        if (len > 10000) {
+        if (len > 10000)
+        {
             Serial.print("Error: Response is too long!");
             isNewData = false;
             return;
         }
-        char* payload;
+        char *payload;
         Serial.print("length of response: ");
         Serial.println(len);
         // create buffer for read
         char buff[len] = {0};
         payload = buff;
         // get tcp stream
-        WiFiClient * stream = http.getStreamPtr();
+        WiFiClient *stream = http.getStreamPtr();
 
         // read all data from server
-        while(http.connected() && (len > 0 || len == -1)) {
+        while (http.connected() && (len > 0 || len == -1))
+        {
             // get available data size
             size_t size = stream->available();
 
-            if(size) {
+            if (size)
+            {
                 // read up to 128 byte
                 int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-                
-                if(len > 0) {
+
+                if (len > 0)
+                {
                     len -= c;
                 }
             }
             delay(1);
         }
-
+        Serial.println(payload);
+        Serial.println("");
+        Serial.println("");
+        Serial.println("");
         formatSevenDayForecast(payload);
         onStart = false; // let timer know to measure by time difference now.
         isNewData = true;
@@ -84,7 +92,7 @@ void Weather::callWeatherAPI()
     http.end();
 }
 
-void Weather::formatSevenDayForecast(char* payload)
+void Weather::formatSevenDayForecast(char *payload)
 {
     Serial.println("formatSevenDayForecast");
     // get an arduinojson of http payload
@@ -105,12 +113,12 @@ void Weather::formatSevenDayForecast(char* payload)
 
     deserializeJson(doc, payload, DeserializationOption::Filter(filter));
     memset(sevenDayForecast, 0, strlen(sevenDayForecast)); // reset sevenDayForecast
-    serializeJson(doc, sevenDayForecast); // convert back to string
+    serializeJson(doc, sevenDayForecast);                  // convert back to string
     Serial.println(sevenDayForecast);
     doc.clear();
 }
 
-char * Weather::getSevenDayForecast()
+char *Weather::getSevenDayForecast()
 {
     return sevenDayForecast;
 }

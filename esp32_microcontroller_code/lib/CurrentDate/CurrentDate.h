@@ -1,20 +1,20 @@
-#ifndef DAYOFWEEK_H
-#define DAYOFWEEK_H
+#ifndef CurrentDate_H
+#define CurrentDate_H
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 
-class DayOfWeek
+class CurrentDate
 {
 private:
     HTTPClient http;
-    char* dayOfWeek;
+    char *dayOfWeek;
 
 public:
-    DayOfWeek();
-    ~DayOfWeek();
+    CurrentDate();
+    ~CurrentDate();
     void requestDayOfWeek(float latitude, float longitude);
-    char* getDayOfWeek();
+    char *getDayOfWeek();
 };
 
 #endif

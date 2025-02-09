@@ -1,14 +1,15 @@
-#include "DayOfWeek.h"
+#include "CurrentDate.h"
 /*
     Calls TimeAPI to get dayOfWeek.
 */
-DayOfWeek::DayOfWeek() {}
+CurrentDate::CurrentDate() {}
 
-void DayOfWeek::requestDayOfWeek(float latitude, float longitude) {
+void CurrentDate::requestDayOfWeek(float latitude, float longitude)
+{
     Serial.println("requestDayOfWeek");
     String timeApiURLString = "https://www.timeapi.io/api/Time/current/coordinate?latitude=" + String(latitude) + "&longitude=" + String(longitude);
     Serial.println(timeApiURLString);
-    const char* timeApiURL = timeApiURLString.c_str();
+    const char *timeApiURL = timeApiURLString.c_str();
     http.begin(timeApiURL);
 
     // Send HTTP GET request
@@ -34,11 +35,11 @@ void DayOfWeek::requestDayOfWeek(float latitude, float longitude) {
     http.end();
 }
 
-char* DayOfWeek::getDayOfWeek() {
+char *CurrentDate::getDayOfWeek()
+{
     return dayOfWeek;
 }
 
-DayOfWeek::~DayOfWeek()
+CurrentDate::~CurrentDate()
 {
 }
-
