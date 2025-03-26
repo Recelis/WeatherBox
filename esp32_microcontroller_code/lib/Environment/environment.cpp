@@ -15,18 +15,14 @@ Environment::Environment()
     WEATHER_API_KEY = "WEATHERAPI_KEY";
 }
 
-void Environment::begin(const char* environmentNamespace) {
+void Environment::begin(const char *environmentNamespace)
+{
     preferences.begin(environmentNamespace, true);
-    
 }
 
-char* Environment::retrieveFromPreference(const char* key)
+char *Environment::retrieveFromPreference(const char *key)
 {
-
-    String valString = preferences.getString(key, "");
-    char* value = new char[valString.length() + 1]; // set size of string block
-    
-    strcpy(value, preferences.getString(key, "").c_str());
+    const char *value = preferences.getString(key, "").c_str();
     Serial.println(value);
     return value;
 }
