@@ -76,8 +76,8 @@ void messageHandler(String &topic, String &payload)
 
 void connectWifi()
 {
-  const char *WIFI_SSID = env.retrieveFromPreference(env.WIFI_SSID_KEY);
-  const char *WIFI_PASSWORD = env.retrieveFromPreference(env.WIFI_PASSWORD_KEY);
+  const char *WIFI_SSID = env.get(Environment::WIFI_SSID);
+  const char *WIFI_PASSWORD = env.get(Environment::WIFI_PASSWORD);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -95,11 +95,11 @@ void connectWifi()
 void connectAWS()
 {
   // Get variables from EEPROM (Preference.h)
-  const char *THING_NAME = env.retrieveFromPreference(env.THING_NAME_KEY);
-  const char *AWS_CERT_CA = env.retrieveFromPreference(env.AWS_CERT_CA_KEY);
-  const char *AWS_CERT_CRT = env.retrieveFromPreference(env.AWS_CERT_CRT_KEY);
-  const char *AWS_CERT_PRIVATE = env.retrieveFromPreference(env.AWS_CERT_PRIVATE_KEY);
-  const char *AWS_IOT_ENDPOINT = env.retrieveFromPreference(env.AWS_IOT_ENDPOINT_KEY);
+  const char *THING_NAME = env.get(Environment::THING_NAME);
+  const char *AWS_CERT_CA = env.get(Environment::AWS_CERT_CA);
+  const char *AWS_CERT_CRT = env.get(Environment::AWS_CERT_CRT);
+  const char *AWS_CERT_PRIVATE = env.get(Environment::AWS_CERT_PRIVATE_KEY);
+  const char *AWS_IOT_ENDPOINT = env.get(Environment::AWS_IOT_ENDPOINT);
 
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -144,7 +144,7 @@ void publishMessage()
     return;
   }
 
-  const char *THING_NAME = env.retrieveFromPreference(env.THING_NAME_KEY);
+  const char *THING_NAME = env.get(env.THING_NAME);
 
   StaticJsonDocument<200> doc;
   doc["time"] = millis();
@@ -166,7 +166,7 @@ int loopIncrement = 0;
 void getWeatherData()
 {
   location.getLocation(locationURL);
-  const char *WEATHER_API_KEY = env.retrieveFromPreference(env.WEATHER_API_KEY);
+  const char *WEATHER_API_KEY = env.get(Environment::WEATHER_API_KEY);
   String weatherURLString = "https://api.pirateweather.net/forecast/" + String(WEATHER_API_KEY) + "/" + String(location.getLatitude()) + "," + String(location.getLongitude()) + "?&units=ca&exclude=minutely,hourly,alerts";
   Serial.println(weatherURLString);
   weather.setWeatherURL(weatherURLString);
