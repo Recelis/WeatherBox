@@ -1,20 +1,30 @@
-#include "Api.h"
+#include "Api.hpp"
 
 // Api initialised only on use.
-Api::Api(const char *url)
+Api::Api()
 {
-    http.begin(url);
 }
 
 Api::~Api()
 {
     http.end();
-    delete url;
-    delete data;
+    delete[] url;
 }
 
-void Api::request(const char *url)
+void Api::init()
 {
+    if (!isInit)
+    {
+        setupUrl();
+        setupFilters();
+        http.begin(url);
+        isInit = true;
+    }
+}
+
+void Api::request()
+{
+    isSuccess = false;
     // Send HTTP GET request
     int httpResponseCode = http.GET();
 
@@ -22,28 +32,22 @@ void Api::request(const char *url)
     {
         Serial.print("HTTP Response code: ");
         Serial.println(httpResponseCode);
-        String payload = http.getString();
-        // deal with dynamic load
-        DynamicJsonDocument doc(5024);
-        deserializeJson(doc, payload);
-
-        dayOfWeek = strdup(doc["dayOfWeek"]); // doc["city"] get's overwritten by later uses of DynamicJSON therefore copy to city
-        doc.clear();
+        // deserialize and automatically filter http response as a stream
+        deserializeJson(data, http.getStream(), DeserializationOption::Filter(filters));
+        isSuccess = true;
     }
     else
     {
-        Serial.print("Error code: ");
+        Serial.print("HTTP Error code: ");
         Serial.println(httpResponseCode);
     }
     // Free resources
     http.end();
 }
 
-char *Api::getDayOfWeek()
+void Api::copyString(char *&target, const char *source)
 {
-    return dayOfWeek;
-}
-
-Api::~CurrentDate()
-{
+    size_t len = strlen(source) + 1;
+    target = new char[len];
+    strcpy(target, source);
 }

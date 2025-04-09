@@ -7,7 +7,7 @@
 #include "environment.h"
 
 #include <Location.h>
-#include <Weather.h>
+#include <Weather.hpp>
 #include <MegaCommunication.h>
 #include <Environment.h>
 #include <CurrentDate.h>
@@ -166,11 +166,11 @@ int loopIncrement = 0;
 void getWeatherData()
 {
   location.getLocation(locationURL);
-  const char *WEATHER_API_KEY = env.get(Environment::WEATHER_API_KEY);
-  String weatherURLString = "https://api.pirateweather.net/forecast/" + String(WEATHER_API_KEY) + "/" + String(location.getLatitude()) + "," + String(location.getLongitude()) + "?&units=ca&exclude=minutely,hourly,alerts";
-  Serial.println(weatherURLString);
-  weather.setWeatherURL(weatherURLString);
+
   currentDate.requestDayOfWeek(location.getLatitude(), location.getLongitude());
+  weather.configure(env.get(Environment::WEATHER_API_KEY), location.getLatitude(), location.getLongitude());
+  weather.init();
+  weather.request();
 }
 
 void setup()
@@ -201,12 +201,14 @@ void loop()
   // loopIncrement++;
 
   // get weather and display on screen
-  bool isNewData = weather.getWeather();
+  weather.request();
+
   // if newWeatherData then send to Mega
-  if (isNewData)
+  if (weather.isSuccess)
   {
     Serial.println("Sending new Data:");
-    char *sevenDayForecast = weather.getSevenDayForecast();
+    char *sevenDayForecast = weather.getData();
     megaCommunication.sendData(sevenDayForecast, location.getCity(), currentDate.getDayOfWeek());
   }
+  delay(600000);
 }
