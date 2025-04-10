@@ -19,26 +19,9 @@ void Location::setupFilters()
     filters["longitude"] = true;
 }
 
-char *Location::getCity()
+String Location::getCity()
 {
-    const char *city = data["city"];
-    Serial.println(city);
-    if (!city)
-    {
-        city = ""; // fallback if null
-        isSuccess = false;
-    }
-
-    size_t len = strlen(city) + 1;
-    Serial.print("city length: ");
-    Serial.println(len);
-
-    char *result = new char[len];
-    strcpy(result, city);
-
-    Serial.print("city: ");
-    Serial.println(result);
-    return result;
+    return data["city"].as<String>();
 }
 
 float Location::getLatitude()

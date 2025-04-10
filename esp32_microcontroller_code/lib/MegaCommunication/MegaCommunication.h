@@ -9,7 +9,7 @@ private:
 public:
     MegaCommunication();
     ~MegaCommunication();
-    void sendData(char *sevenDayForecast, char *city, char *dayOfWeek);
+    void sendData(char *sevenDayForecast, String city, String dayOfWeek);
 };
 
 #endif

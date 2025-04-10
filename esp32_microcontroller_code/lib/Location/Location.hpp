@@ -8,7 +8,6 @@
 class Location : public Api
 {
 private:
-    char *city;
     float latitude;
     float longitude;
 
@@ -19,7 +18,7 @@ protected:
 public:
     Location();
     ~Location();
-    char *getCity();
+    String getCity();
     float getLatitude();
     float getLongitude();
 };

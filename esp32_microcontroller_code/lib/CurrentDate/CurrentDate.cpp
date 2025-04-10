@@ -28,48 +28,19 @@ void CurrentDate::setupFilters()
     filters["dateTime"] = true;
 }
 
-char *CurrentDate::getDayOfWeek()
+String CurrentDate::getDayOfWeek()
 {
-    const char *day = data["dayOfWeek"];
-    Serial.println(day);
-    if (!day)
-    {
-        day = ""; // fallback if null
-        isSuccess = false;
-    }
-
-    size_t len = strlen(day) + 1;
-    Serial.print("day length: ");
-    Serial.println(len);
-
-    char *result = new char[len];
-    strcpy(result, day);
-
-    Serial.print("dayOfWeek: ");
-    Serial.println(result);
-    return result;
+    return data["dayOfWeek"].as<String>();
 }
 
-char *CurrentDate::getDate()
+String CurrentDate::getDate()
 {
-    const char *date = data["date"];
-    Serial.println(date);
-    if (!date)
-    {
-        date = ""; // fallback if null
-        isSuccess = false;
-    }
+    return data["date"].as<String>();
+}
 
-    size_t len = strlen(date) + 1;
-    Serial.print("date length: ");
-    Serial.println(len);
-
-    char *result = new char[len];
-    strcpy(result, date);
-
-    Serial.print("date: ");
-    Serial.println(result);
-    return result;
+String CurrentDate::getDateTime()
+{
+    return data["dateTime"].as<String>();
 }
 
 CurrentDate::~CurrentDate()

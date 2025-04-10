@@ -10,7 +10,7 @@ MegaCommunication::MegaCommunication()
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
 }
 
-void MegaCommunication::sendData(char *sevenDayForecast, char *location, char *dayOfWeek)
+void MegaCommunication::sendData(char *sevenDayForecast, String location, String dayOfWeek)
 {
   // combines the location city data with weather data
   // send to Mega

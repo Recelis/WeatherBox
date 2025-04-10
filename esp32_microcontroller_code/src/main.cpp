@@ -125,11 +125,19 @@ void getWeatherData()
 {
   location.init();
   location.request();
+  if (!location.isSuccess)
+  {
+    return;
+  }
 
   currentDate.configure(location.getLatitude(), location.getLongitude());
   currentDate.init();
   currentDate.request();
 
+  if (!currentDate.isSuccess)
+  {
+    return;
+  }
   weather.configure(env.get(Environment::WEATHER_API_KEY), location.getLatitude(), location.getLongitude());
   weather.init();
   weather.request();
@@ -155,8 +163,10 @@ void loop()
   {
     Serial.println("Sending new Data:");
     char *sevenDayForecast = weather.getData();
-    char *dayOfWeek = currentDate.getDayOfWeek();
-    megaCommunication.sendData(sevenDayForecast, location.getCity(), dayOfWeek);
+    String dayOfWeek = currentDate.getDayOfWeek();
+    String city = location.getCity();
+    megaCommunication.sendData(sevenDayForecast, city, dayOfWeek);
+    delete[] sevenDayForecast;
   }
   else
   {
@@ -168,5 +178,7 @@ void loop()
       Serial.print("Weather ");
     Serial.println("Failure when requesting weather data");
   }
-  delay(360000);
+  Serial.print("Free heap: ");
+  Serial.println(ESP.getFreeHeap());
+  delay(3600000);
 }

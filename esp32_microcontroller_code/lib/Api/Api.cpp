@@ -8,19 +8,16 @@ Api::Api(const char *name) : data(1600)
 
 Api::~Api()
 {
-    http.end();
     delete[] url;
 }
 
 void Api::init()
 {
-    if (!isInit)
-    {
-        setupUrl();
-        setupFilters();
-        http.begin(url);
-        isInit = true;
-    }
+    // new line
+    Serial.println("");
+
+    setupUrl();
+    setupFilters();
 }
 
 void Api::request()
@@ -28,13 +25,12 @@ void Api::request()
     // clear data before requesting again
     data.clear();
 
-    if (!isInit)
-    {
-        Serial.print(apiName);
-        Serial.println(" has not been initialised!");
-        return;
-    }
-    Serial.println("");
+    http.begin(url);
+    http.setTimeout(10000);
+    // stop reuse of http client https://github.com/espressif/arduino-esp32/issues/3387#issuecomment-756815055
+    // this is an issue with the timeapi endpoint which would prevent headers from being sent a second time.
+    http.setReuse(false);
+
     Serial.print("Starting request of ");
     Serial.println(apiName);
     isSuccess = false;
@@ -65,6 +61,20 @@ void Api::request()
     {
         Serial.print("HTTP Error code: ");
         Serial.println(httpResponseCode);
+        switch (httpResponseCode)
+        {
+        case HTTPC_ERROR_CONNECTION_LOST:
+            Serial.println("Connection lost — maybe TLS/SSL or server closed the connection.");
+            break;
+        case HTTPC_ERROR_SEND_HEADER_FAILED:
+            Serial.println("Send header failed.");
+            break;
+        case HTTPC_ERROR_READ_TIMEOUT:
+            Serial.println("Read timeout.");
+            break;
+        default:
+            Serial.println("Unknown error — check SSL certs, memory, and endpoint.");
+        }
     }
     // Free resources
     http.end();

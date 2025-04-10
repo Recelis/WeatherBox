@@ -8,7 +8,6 @@ class Api
 {
 private:
     HTTPClient http;
-    bool isInit;
     const char *apiName;
 
 protected:

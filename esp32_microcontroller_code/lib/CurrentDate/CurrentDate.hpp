@@ -18,8 +18,9 @@ public:
     CurrentDate();
     ~CurrentDate();
     void configure(float lat, float lon);
-    char *getDayOfWeek();
-    char *getDate();
+    String getDayOfWeek();
+    String getDate();
+    String getDateTime();
 };
 
 #endif
