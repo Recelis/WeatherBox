@@ -3,19 +3,22 @@
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include "Api.hpp"
 
-class Location
+class Location : public Api
 {
 private:
     char *city;
     float latitude;
     float longitude;
-    HTTPClient http;
+
+protected:
+    void setupUrl() override;
+    void setupFilters() override;
 
 public:
     Location();
     ~Location();
-    void getLocation(const char *locationURL);
     char *getCity();
     float getLatitude();
     float getLongitude();

@@ -3,14 +3,12 @@
 #include <ArduinoJson.h>
 #include "WiFi.h"
 #include <Preferences.h>
-#include <DHT.h>
-#include "environment.h"
 
-#include <Location.h>
+#include <Location.hpp>
 #include <Weather.hpp>
 #include <MegaCommunication.h>
-#include <Environment.h>
-#include <CurrentDate.h>
+#include <Environment.hpp>
+#include <CurrentDate.hpp>
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
@@ -30,8 +28,6 @@ SET_LOOP_TASK_STACK_SIZE(16 * 1024);
         serialises results and sends to Arduino Mega.
 
 */
-
-const char *locationURL = "https://ipapi.co/json/";
 
 // initialise Location object
 Location location;
@@ -57,21 +53,13 @@ CurrentDate currentDate;
 #define LOOP_MICROSECONDS 100
 #define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE *MICROSECONDS_IN_SECOND
 
-#define DHTPIN 23
-#define DHTTYPE DHT22
-
 WiFiClientSecure net = WiFiClientSecure();
 MQTTClient client = MQTTClient(256);
 Environment env = Environment();
-DHT dht(DHTPIN, DHTTYPE);
 
 void messageHandler(String &topic, String &payload)
 {
   Serial.println("incoming: " + topic + " - " + payload);
-
-  //  StaticJsonDocument<200> doc;
-  //  deserializeJson(doc, payload);
-  //  const char* message = doc["message"];
 }
 
 void connectWifi()
@@ -133,41 +121,15 @@ void connectAWS()
   Serial.println("AWS IoT Connected!");
 }
 
-void publishMessage()
-{
-  float temp = dht.readTemperature();
-  Serial.print("Temperature: ");
-  Serial.println(temp);
-  if (isnan(temp))
-  {
-    Serial.println("Failed to read temperature from sensor");
-    return;
-  }
-
-  const char *THING_NAME = env.get(env.THING_NAME);
-
-  StaticJsonDocument<200> doc;
-  doc["time"] = millis();
-  doc["temp"] = temp;
-  doc["monitorName"] = THING_NAME;
-  char jsonBuffer[512];
-
-  serializeJson(doc, jsonBuffer); // print to client
-
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
-  Serial.print("publish message: ");
-  Serial.print(jsonBuffer);
-  Serial.print(" ");
-  Serial.println(AWS_IOT_PUBLISH_TOPIC);
-}
-
-int loopIncrement = 0;
-
 void getWeatherData()
 {
-  location.getLocation(locationURL);
+  location.init();
+  location.request();
 
-  currentDate.requestDayOfWeek(location.getLatitude(), location.getLongitude());
+  currentDate.configure(location.getLatitude(), location.getLongitude());
+  currentDate.init();
+  currentDate.request();
+
   weather.configure(env.get(Environment::WEATHER_API_KEY), location.getLatitude(), location.getLongitude());
   weather.init();
   weather.request();
@@ -177,38 +139,34 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("Starting Program");
-  dht.begin();
   env.begin("ESP32Monitoring");
   connectWifi();
-  getWeatherData();
   // connectAWS();
   // publishMessage();
 }
 
 void loop()
 {
-  // Don't publish message
-  // if (!client.connected()) {
-  //   connectAWS();
-  // }
-
-  // client.loop();
-  // delay(LOOP_MICROSECONDS);
-  // if (loopIncrement > (PUBLISH_MICROSECONDS / LOOP_MICROSECONDS)) {
-  //   publishMessage();
-  //   loopIncrement = 0;
-  // };
-  // loopIncrement++;
-
   // get weather and display on screen
-  weather.request();
+  getWeatherData();
 
   // if newWeatherData then send to Mega
-  if (weather.isSuccess)
+  if (location.isSuccess && currentDate.isSuccess && weather.isSuccess)
   {
     Serial.println("Sending new Data:");
     char *sevenDayForecast = weather.getData();
-    megaCommunication.sendData(sevenDayForecast, location.getCity(), currentDate.getDayOfWeek());
+    char *dayOfWeek = currentDate.getDayOfWeek();
+    megaCommunication.sendData(sevenDayForecast, location.getCity(), dayOfWeek);
   }
-  delay(600000);
+  else
+  {
+    if (!location.isSuccess)
+      Serial.print("Location ");
+    if (!currentDate.isSuccess)
+      Serial.print("CurrentDate ");
+    if (!weather.isSuccess)
+      Serial.print("Weather ");
+    Serial.println("Failure when requesting weather data");
+  }
+  delay(360000);
 }

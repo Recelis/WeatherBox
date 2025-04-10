@@ -1,6 +1,6 @@
 #include "Weather.hpp"
 
-Weather::Weather() : Api() {}
+Weather::Weather() : Api("Weather") {}
 
 Weather::~Weather()
 {
@@ -17,7 +17,7 @@ void Weather::configure(const char *apiKey, float lat, float lon)
 void Weather::setupUrl()
 {
     String weatherURLString = "https://api.pirateweather.net/forecast/" + String(weatherApiKey) + "/" + String(latitude) + "," + String(longitude) + "?&units=ca&exclude=minutely,hourly,alerts";
-    Serial.print("Requesting weather data from: ");
+    Serial.print("Weather url: ");
     Serial.println(weatherURLString);
     const char *weatherUrl = weatherURLString.c_str();
     copyString(url, weatherUrl);

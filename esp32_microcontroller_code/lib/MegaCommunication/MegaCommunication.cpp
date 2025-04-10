@@ -14,13 +14,14 @@ void MegaCommunication::sendData(char *sevenDayForecast, char *location, char *d
 {
   // combines the location city data with weather data
   // send to Mega
-  DynamicJsonDocument doc(1500);
+  JsonDocument doc;
   deserializeJson(doc, sevenDayForecast);
   doc["location"] = location;
   doc["dayOfWeek"] = dayOfWeek;
   char output[1500];
   serializeJson(doc, output);
   Serial1.println(output);
+  Serial.println("Sending data: ");
   Serial.println(output);
 }
 

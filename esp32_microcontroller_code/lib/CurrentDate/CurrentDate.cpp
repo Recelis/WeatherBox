@@ -1,43 +1,75 @@
-#include "CurrentDate.h"
+#include "CurrentDate.hpp"
 /*
     Calls TimeAPI to get dayOfWeek.
 */
-CurrentDate::CurrentDate() {}
-
-void CurrentDate::requestDayOfWeek(float latitude, float longitude)
+CurrentDate::CurrentDate() : Api("CurrentDate")
 {
-    Serial.println("requestDayOfWeek");
+}
+
+void CurrentDate::configure(float lat, float lon)
+{
+    latitude = lat;
+    longitude = lon;
+}
+
+void CurrentDate::setupUrl()
+{
     String timeApiURLString = "https://www.timeapi.io/api/Time/current/coordinate?latitude=" + String(latitude) + "&longitude=" + String(longitude);
+    Serial.print("current date url: ");
     Serial.println(timeApiURLString);
-    const char *timeApiURL = timeApiURLString.c_str();
-    http.begin(timeApiURL);
+    const char *currentDateUrl = timeApiURLString.c_str();
+    copyString(url, currentDateUrl);
+}
 
-    // Send HTTP GET request
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode == HTTP_CODE_OK)
-    {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-        String payload = http.getString();
-        DynamicJsonDocument doc(5024);
-        deserializeJson(doc, payload);
-
-        dayOfWeek = strdup(doc["dayOfWeek"]); // doc["city"] get's overwritten by later uses of DynamicJSON therefore copy to city
-        doc.clear();
-    }
-    else
-    {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
+void CurrentDate::setupFilters()
+{
+    filters["date"] = true;
+    filters["dayOfWeek"] = true;
+    filters["dateTime"] = true;
 }
 
 char *CurrentDate::getDayOfWeek()
 {
-    return dayOfWeek;
+    const char *day = data["dayOfWeek"];
+    Serial.println(day);
+    if (!day)
+    {
+        day = ""; // fallback if null
+        isSuccess = false;
+    }
+
+    size_t len = strlen(day) + 1;
+    Serial.print("day length: ");
+    Serial.println(len);
+
+    char *result = new char[len];
+    strcpy(result, day);
+
+    Serial.print("dayOfWeek: ");
+    Serial.println(result);
+    return result;
+}
+
+char *CurrentDate::getDate()
+{
+    const char *date = data["date"];
+    Serial.println(date);
+    if (!date)
+    {
+        date = ""; // fallback if null
+        isSuccess = false;
+    }
+
+    size_t len = strlen(date) + 1;
+    Serial.print("date length: ");
+    Serial.println(len);
+
+    char *result = new char[len];
+    strcpy(result, date);
+
+    Serial.print("date: ");
+    Serial.println(result);
+    return result;
 }
 
 CurrentDate::~CurrentDate()
