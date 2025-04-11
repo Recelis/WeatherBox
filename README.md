@@ -1,4 +1,8 @@
-# ESP32Monitoring
+# WeatherBox (fork from ESP32Monitoring)
+
+This is a ESP32 project for getting an up to date weather forecast connected to a Arduino MEGA for displaying them onto a screen. It was forked from ESP32Monitoring to later be able to display monitoring readings from other IOT devices.
+
+![weatherbox](https://github.com/user-attachments/assets/9d4d59f5-395f-421d-8e99-c8f0283729b1)
 
 ## Setup
 
