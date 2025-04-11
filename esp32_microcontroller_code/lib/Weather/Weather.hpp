@@ -1,5 +1,5 @@
-#ifndef WEATHER_H
-#define WEATHER_H
+#ifndef WEATHER_HPP
+#define WEATHER_HPP
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>

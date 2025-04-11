@@ -1,5 +1,5 @@
-#ifndef LOCATION_USING_IP_ADDRESS_H
-#define LOCATION_USING_IP_ADDRESS_H
+#ifndef LOCATION_HPP
+#define LOCATION_HPP
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>

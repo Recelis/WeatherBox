@@ -1,5 +1,5 @@
-#ifndef CurrentDate_H
-#define CurrentDate_H
+#ifndef CurrentDate_HPP
+#define CurrentDate_HPP
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>

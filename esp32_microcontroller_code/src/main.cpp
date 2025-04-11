@@ -9,9 +9,12 @@
 #include <MegaCommunication.h>
 #include <Environment.hpp>
 #include <CurrentDate.hpp>
+#include <IntervalFetcher.hpp>
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
+// refetch every 10 minutes
+#define WEATHER_REFETCH_INTERVAL_MS 600000
 /*
   ESP32 Weather built on PlatformIO.
 
@@ -44,14 +47,18 @@ Environment environment;
 // initialise day of week object
 CurrentDate currentDate;
 
+// initialise class for refetching
+IntervalFetcher intervalFetcher = IntervalFetcher(WEATHER_REFETCH_INTERVAL_MS);
+
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
 #define MICROSECONDS_IN_SECOND 1000
 #define SECONDS_IN_MINUTE 60
-#define LOOP_MICROSECONDS 100
 #define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE *MICROSECONDS_IN_SECOND
+
+#define LOOP_MICROSECONDS 100
 
 WiFiClientSecure net = WiFiClientSecure();
 MQTTClient client = MQTTClient(256);
@@ -149,6 +156,7 @@ void setup()
   Serial.println("Starting Program");
   env.begin("ESP32Monitoring");
   connectWifi();
+
   // connectAWS();
   // publishMessage();
 }
@@ -156,29 +164,33 @@ void setup()
 void loop()
 {
   // get weather and display on screen
-  getWeatherData();
+  if (intervalFetcher.shouldFetch())
+  {
+    getWeatherData();
+    // if newWeatherData then send to Mega
+    if (location.isSuccess && currentDate.isSuccess && weather.isSuccess)
+    {
+      Serial.println("Sending new Data:");
+      char *sevenDayForecast = weather.getData();
+      String dayOfWeek = currentDate.getDayOfWeek();
+      String city = location.getCity();
+      megaCommunication.sendData(sevenDayForecast, city, dayOfWeek);
+      delete[] sevenDayForecast;
+    }
+    else
+    {
+      if (!location.isSuccess)
+        Serial.print("Location ");
+      if (!currentDate.isSuccess)
+        Serial.print("CurrentDate ");
+      if (!weather.isSuccess)
+        Serial.print("Weather ");
+      Serial.println("Failure when requesting weather data");
+    }
+    Serial.print("Free heap: ");
+    Serial.println(ESP.getFreeHeap());
+  }
 
-  // if newWeatherData then send to Mega
-  if (location.isSuccess && currentDate.isSuccess && weather.isSuccess)
-  {
-    Serial.println("Sending new Data:");
-    char *sevenDayForecast = weather.getData();
-    String dayOfWeek = currentDate.getDayOfWeek();
-    String city = location.getCity();
-    megaCommunication.sendData(sevenDayForecast, city, dayOfWeek);
-    delete[] sevenDayForecast;
-  }
-  else
-  {
-    if (!location.isSuccess)
-      Serial.print("Location ");
-    if (!currentDate.isSuccess)
-      Serial.print("CurrentDate ");
-    if (!weather.isSuccess)
-      Serial.print("Weather ");
-    Serial.println("Failure when requesting weather data");
-  }
-  Serial.print("Free heap: ");
-  Serial.println(ESP.getFreeHeap());
-  delay(3600000);
+  // check regularly
+  delay(LOOP_MICROSECONDS);
 }

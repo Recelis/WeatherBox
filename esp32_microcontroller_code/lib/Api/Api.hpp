@@ -1,5 +1,5 @@
-#ifndef Api_H
-#define Api_H
+#ifndef Api_HPP
+#define Api_HPP
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>

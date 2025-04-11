@@ -1,5 +1,5 @@
-#ifndef MegaCommunication_H
-#define MegaCommunication_H
+#ifndef MegaCommunication_HPP
+#define MegaCommunication_HPP
 
 #include <ArduinoJson.h>
 
