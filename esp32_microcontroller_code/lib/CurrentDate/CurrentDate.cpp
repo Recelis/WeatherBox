@@ -1,43 +1,46 @@
-#include "CurrentDate.h"
+#include "CurrentDate.hpp"
 /*
     Calls TimeAPI to get dayOfWeek.
 */
-CurrentDate::CurrentDate() {}
-
-void CurrentDate::requestDayOfWeek(float latitude, float longitude)
+CurrentDate::CurrentDate() : Api("CurrentDate")
 {
-    Serial.println("requestDayOfWeek");
-    String timeApiURLString = "https://www.timeapi.io/api/Time/current/coordinate?latitude=" + String(latitude) + "&longitude=" + String(longitude);
-    Serial.println(timeApiURLString);
-    const char *timeApiURL = timeApiURLString.c_str();
-    http.begin(timeApiURL);
-
-    // Send HTTP GET request
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode == HTTP_CODE_OK)
-    {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-        String payload = http.getString();
-        DynamicJsonDocument doc(5024);
-        deserializeJson(doc, payload);
-
-        dayOfWeek = strdup(doc["dayOfWeek"]); // doc["city"] get's overwritten by later uses of DynamicJSON therefore copy to city
-        doc.clear();
-    }
-    else
-    {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
 }
 
-char *CurrentDate::getDayOfWeek()
+void CurrentDate::configure(float lat, float lon)
 {
-    return dayOfWeek;
+    latitude = lat;
+    longitude = lon;
+}
+
+void CurrentDate::setupUrl()
+{
+    String timeApiURLString = "https://www.timeapi.io/api/Time/current/coordinate?latitude=" + String(latitude) + "&longitude=" + String(longitude);
+    Serial.print("current date url: ");
+    Serial.println(timeApiURLString);
+    const char *currentDateUrl = timeApiURLString.c_str();
+    copyString(url, currentDateUrl);
+}
+
+void CurrentDate::setupFilters()
+{
+    filters["date"] = true;
+    filters["dayOfWeek"] = true;
+    filters["dateTime"] = true;
+}
+
+String CurrentDate::getDayOfWeek()
+{
+    return data["dayOfWeek"].as<String>();
+}
+
+String CurrentDate::getDate()
+{
+    return data["date"].as<String>();
+}
+
+String CurrentDate::getDateTime()
+{
+    return data["dateTime"].as<String>();
 }
 
 CurrentDate::~CurrentDate()

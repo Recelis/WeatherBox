@@ -1,5 +1,5 @@
-#ifndef MegaCommunication_H
-#define MegaCommunication_H
+#ifndef MegaCommunication_HPP
+#define MegaCommunication_HPP
 
 #include <ArduinoJson.h>
 
@@ -9,7 +9,7 @@ private:
 public:
     MegaCommunication();
     ~MegaCommunication();
-    void sendData(char *sevenDayForecast, char *city, char *dayOfWeek);
+    void sendData(char *sevenDayForecast, String city, String dayOfWeek);
 };
 
 #endif

@@ -1,50 +1,54 @@
-#include "Location.h"
-Location::Location()
+#include "Location.hpp"
+
+Location::Location() : Api("Location")
 {
 }
 
-void Location::getLocation(const char *locationURL)
+void Location::setupUrl()
 {
-    Serial.println("Getting location");
-    http.begin(locationURL);
-
-    // Send HTTP GET request
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode == HTTP_CODE_OK)
-    {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-        String payload = http.getString();
-        DynamicJsonDocument doc(5024);
-        deserializeJson(doc, payload);
-
-        city = strdup(doc["city"]); // doc["city"] get's overwritten by later uses of DynamicJSON therefore copy to city
-        latitude = doc["latitude"];
-        longitude = doc["longitude"];
-        doc.clear();
-    }
-    else
-    {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
+    const char *locationUrl = "https://ipapi.co/json/";
+    Serial.print("location url: ");
+    Serial.println(locationUrl);
+    copyString(url, locationUrl);
 }
 
-char *Location::getCity()
+void Location::setupFilters()
 {
-    return city;
+    filters["city"] = true;
+    filters["latitude"] = true;
+    filters["longitude"] = true;
+}
+
+String Location::getCity()
+{
+    return data["city"].as<String>();
 }
 
 float Location::getLatitude()
 {
+    float latitude = data["latitude"];
+    Serial.print("latitude: ");
+    Serial.println(latitude);
+    if (!latitude)
+    {
+        latitude = 0.0; // fallback if null
+        isSuccess = false;
+    }
+
     return latitude;
 }
 
 float Location::getLongitude()
 {
+    float longitude = data["longitude"];
+    Serial.print("longitude: ");
+    Serial.println(longitude);
+    if (!longitude)
+    {
+        longitude = 0.0; // fallback if null
+        isSuccess = false;
+    }
+
     return longitude;
 }
 

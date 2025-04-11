@@ -62,7 +62,6 @@ void LCD::drawScreen(char *receivedChars)
     // any overwriting cuts things off
     drawCurrentBox(boxCurrent);
     drawBox(box0, 120, 6, '0');
-    Serial.println("Getting here?");
     Serial.println(box0.tempMin);
     drawBox(box1, 240, 6, '1');
     drawBox(box2, 360, 6, '2');

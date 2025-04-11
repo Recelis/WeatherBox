@@ -3,17 +3,18 @@
 #include <ArduinoJson.h>
 #include "WiFi.h"
 #include <Preferences.h>
-#include <DHT.h>
-#include "environment.h"
 
-#include <Location.h>
-#include <Weather.h>
+#include <Location.hpp>
+#include <Weather.hpp>
 #include <MegaCommunication.h>
-#include <Environment.h>
-#include <CurrentDate.h>
+#include <Environment.hpp>
+#include <CurrentDate.hpp>
+#include <IntervalFetcher.hpp>
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
+// refetch every 10 minutes
+#define WEATHER_REFETCH_INTERVAL_MS 600000
 /*
   ESP32 Weather built on PlatformIO.
 
@@ -31,8 +32,6 @@ SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
 */
 
-const char *locationURL = "https://ipapi.co/json/";
-
 // initialise Location object
 Location location;
 
@@ -48,36 +47,32 @@ Environment environment;
 // initialise day of week object
 CurrentDate currentDate;
 
+// initialise class for refetching
+IntervalFetcher intervalFetcher = IntervalFetcher(WEATHER_REFETCH_INTERVAL_MS);
+
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
 #define MICROSECONDS_IN_SECOND 1000
 #define SECONDS_IN_MINUTE 60
-#define LOOP_MICROSECONDS 100
 #define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE *MICROSECONDS_IN_SECOND
 
-#define DHTPIN 23
-#define DHTTYPE DHT22
+#define LOOP_MICROSECONDS 100
 
 WiFiClientSecure net = WiFiClientSecure();
 MQTTClient client = MQTTClient(256);
 Environment env = Environment();
-DHT dht(DHTPIN, DHTTYPE);
 
 void messageHandler(String &topic, String &payload)
 {
   Serial.println("incoming: " + topic + " - " + payload);
-
-  //  StaticJsonDocument<200> doc;
-  //  deserializeJson(doc, payload);
-  //  const char* message = doc["message"];
 }
 
 void connectWifi()
 {
-  const char *WIFI_SSID = env.retrieveFromPreference(env.WIFI_SSID_KEY);
-  const char *WIFI_PASSWORD = env.retrieveFromPreference(env.WIFI_PASSWORD_KEY);
+  const char *WIFI_SSID = env.get(Environment::WIFI_SSID);
+  const char *WIFI_PASSWORD = env.get(Environment::WIFI_PASSWORD);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -95,11 +90,11 @@ void connectWifi()
 void connectAWS()
 {
   // Get variables from EEPROM (Preference.h)
-  const char *THING_NAME = env.retrieveFromPreference(env.THING_NAME_KEY);
-  const char *AWS_CERT_CA = env.retrieveFromPreference(env.AWS_CERT_CA_KEY);
-  const char *AWS_CERT_CRT = env.retrieveFromPreference(env.AWS_CERT_CRT_KEY);
-  const char *AWS_CERT_PRIVATE = env.retrieveFromPreference(env.AWS_CERT_PRIVATE_KEY);
-  const char *AWS_IOT_ENDPOINT = env.retrieveFromPreference(env.AWS_IOT_ENDPOINT_KEY);
+  const char *THING_NAME = env.get(Environment::THING_NAME);
+  const char *AWS_CERT_CA = env.get(Environment::AWS_CERT_CA);
+  const char *AWS_CERT_CRT = env.get(Environment::AWS_CERT_CRT);
+  const char *AWS_CERT_PRIVATE = env.get(Environment::AWS_CERT_PRIVATE_KEY);
+  const char *AWS_IOT_ENDPOINT = env.get(Environment::AWS_IOT_ENDPOINT);
 
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -133,80 +128,69 @@ void connectAWS()
   Serial.println("AWS IoT Connected!");
 }
 
-void publishMessage()
+void getWeatherData()
 {
-  float temp = dht.readTemperature();
-  Serial.print("Temperature: ");
-  Serial.println(temp);
-  if (isnan(temp))
+  location.init();
+  location.request();
+  if (!location.isSuccess)
   {
-    Serial.println("Failed to read temperature from sensor");
     return;
   }
 
-  const char *THING_NAME = env.retrieveFromPreference(env.THING_NAME_KEY);
+  currentDate.configure(location.getLatitude(), location.getLongitude());
+  currentDate.init();
+  currentDate.request();
 
-  StaticJsonDocument<200> doc;
-  doc["time"] = millis();
-  doc["temp"] = temp;
-  doc["monitorName"] = THING_NAME;
-  char jsonBuffer[512];
-
-  serializeJson(doc, jsonBuffer); // print to client
-
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
-  Serial.print("publish message: ");
-  Serial.print(jsonBuffer);
-  Serial.print(" ");
-  Serial.println(AWS_IOT_PUBLISH_TOPIC);
-}
-
-int loopIncrement = 0;
-
-void getWeatherData()
-{
-  location.getLocation(locationURL);
-  const char *WEATHER_API_KEY = env.retrieveFromPreference(env.WEATHER_API_KEY);
-  String weatherURLString = "https://api.pirateweather.net/forecast/" + String(WEATHER_API_KEY) + "/" + String(location.getLatitude()) + "," + String(location.getLongitude()) + "?&units=ca&exclude=minutely,hourly,alerts";
-  Serial.println(weatherURLString);
-  weather.setWeatherURL(weatherURLString);
-  currentDate.requestDayOfWeek(location.getLatitude(), location.getLongitude());
+  if (!currentDate.isSuccess)
+  {
+    return;
+  }
+  weather.configure(env.get(Environment::WEATHER_API_KEY), location.getLatitude(), location.getLongitude());
+  weather.init();
+  weather.request();
 }
 
 void setup()
 {
   Serial.begin(9600);
   Serial.println("Starting Program");
-  dht.begin();
   env.begin("ESP32Monitoring");
   connectWifi();
-  getWeatherData();
+
   // connectAWS();
   // publishMessage();
 }
 
 void loop()
 {
-  // Don't publish message
-  // if (!client.connected()) {
-  //   connectAWS();
-  // }
-
-  // client.loop();
-  // delay(LOOP_MICROSECONDS);
-  // if (loopIncrement > (PUBLISH_MICROSECONDS / LOOP_MICROSECONDS)) {
-  //   publishMessage();
-  //   loopIncrement = 0;
-  // };
-  // loopIncrement++;
-
   // get weather and display on screen
-  bool isNewData = weather.getWeather();
-  // if newWeatherData then send to Mega
-  if (isNewData)
+  if (intervalFetcher.shouldFetch())
   {
-    Serial.println("Sending new Data:");
-    char *sevenDayForecast = weather.getSevenDayForecast();
-    megaCommunication.sendData(sevenDayForecast, location.getCity(), currentDate.getDayOfWeek());
+    getWeatherData();
+    // if newWeatherData then send to Mega
+    if (location.isSuccess && currentDate.isSuccess && weather.isSuccess)
+    {
+      Serial.println("Sending new Data:");
+      char *sevenDayForecast = weather.getData();
+      String dayOfWeek = currentDate.getDayOfWeek();
+      String city = location.getCity();
+      megaCommunication.sendData(sevenDayForecast, city, dayOfWeek);
+      delete[] sevenDayForecast;
+    }
+    else
+    {
+      if (!location.isSuccess)
+        Serial.print("Location ");
+      if (!currentDate.isSuccess)
+        Serial.print("CurrentDate ");
+      if (!weather.isSuccess)
+        Serial.print("Weather ");
+      Serial.println("Failure when requesting weather data");
+    }
+    Serial.print("Free heap: ");
+    Serial.println(ESP.getFreeHeap());
   }
+
+  // check regularly
+  delay(LOOP_MICROSECONDS);
 }
