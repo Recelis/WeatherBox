@@ -9,6 +9,7 @@ class Api
 private:
     HTTPClient http;
     const char *apiName;
+    bool isInit = false;
 
 protected:
     char *url = nullptr;

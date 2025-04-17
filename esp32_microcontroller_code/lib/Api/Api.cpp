@@ -14,7 +14,8 @@ Api::~Api()
 void Api::init()
 {
     // new line
-    Serial.println("");
+    Serial.print(apiName);
+    isInit = true; // this allows requests to continue being made.
 
     setupUrl();
     setupFilters();
@@ -22,6 +23,13 @@ void Api::init()
 
 void Api::request()
 {
+    // check that all url has been initialised
+    if (!isInit)
+    {
+        Serial.print(apiName);
+        Serial.println(" has not been initialised yet!");
+        return;
+    }
     // clear data before requesting again
     data.clear();
 
