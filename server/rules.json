@@ -1,0 +1,12 @@
+{
+  "rules": [
+    { "source": "slack",     "channel": "alerts",   "priority": 3 },
+    { "source": "slack",     "priority": 1 },
+    { "source": "teams",     "channel": "General",  "priority": 1 },
+    { "source": "teams",     "priority": 1 },
+    { "source": "messenger", "priority": 1 },
+    { "source": "iot",       "priority": 2 }
+  ],
+  "maxMessages": 8,
+  "deduplicateWindowSeconds": 300
+}
