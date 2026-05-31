@@ -17,7 +17,7 @@ httpServer.listen(PORT, async () => {
   // Bootstrap Teams Graph subscription if already authenticated
   if (tokenStore.isConnected('teams') && process.env.TEAMS_WEBHOOK_URL) {
     try {
-      await teamsSubscription.createSubscription(process.env.TEAMS_WEBHOOK_URL);
+      await teamsSubscription.createSubscriptions(process.env.TEAMS_WEBHOOK_URL);
     } catch (err) {
       console.warn('Could not create Teams subscription on startup:', err.message);
     }

@@ -156,13 +156,19 @@ sudo systemctl start cloudflared
 
 ### MS Teams
 
+> **No admin consent required** — this integration uses delegated permissions (reads messages as you, not as a service account).
+
 1. Go to [portal.azure.com](https://portal.azure.com) → **Azure Active Directory** → **App registrations** → **New registration**
 2. Name it (e.g. "WeatherBox"), Supported account types: **Single tenant**
-3. Redirect URI: `https://your-tunnel/auth/teams/callback`
+3. Redirect URI (Web): `https://your-tunnel/auth/teams/callback`
 4. Copy **Application (client) ID** → `TEAMS_CLIENT_ID`, **Directory (tenant) ID** → `TEAMS_TENANT_ID`
 5. **Certificates & secrets** → **New client secret** → copy value → `TEAMS_CLIENT_SECRET`
-6. **API permissions** → Add: `ChannelMessage.Read.All`, `Chat.Read` (Microsoft Graph, Delegated)
-7. Grant admin consent
+6. **API permissions** → Add the following **Delegated** Microsoft Graph permissions:
+   - `Chat.Read` — all your 1:1 and group chats (no admin consent needed)
+   - `ChannelMessage.Read` — specific team channels you configure (no admin consent needed)
+   - `offline_access` — allows token refresh without re-login
+7. Visit `https://your-tunnel/auth/teams` and sign in with your Teams account
+8. **Optional — Teams channel messages**: To also receive messages from specific channels (not just chats), find the team ID and channel ID via [Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer) (`GET /me/joinedTeams`, then `GET /teams/{id}/channels`) and add them to `TEAMS_CHANNEL_IDS` in `.env`
 
 ### Facebook Messenger
 
