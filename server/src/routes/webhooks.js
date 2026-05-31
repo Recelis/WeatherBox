@@ -126,11 +126,73 @@ function verifyTeamsClientState(body) {
   return items.every((item) => !item.clientState || item.clientState === expectedState);
 }
 
-// ── Messenger (stub — filled in by AC7) ──────────────────────────────────────
+// ── Facebook Messenger ────────────────────────────────────────────────────────
+
+// Meta sends a GET request to verify the webhook URL before activating it
+router.get('/messenger', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === process.env.MESSENGER_VERIFY_TOKEN) {
+    return res.status(200).send(challenge);
+  }
+  res.sendStatus(403);
+});
 
 router.post('/messenger', (req, res) => {
-  res.status(501).json({ error: 'Messenger webhook not yet implemented' });
+  const body = req.body;
+  if (body.object !== 'page') return res.sendStatus(404);
+
+  for (const entry of body.entry ?? []) {
+    for (const event of entry.messaging ?? []) {
+      // Only handle inbound text messages (ignore echoes, reads, deliveries)
+      if (!event.message || event.message.is_echo) continue;
+
+      const senderId = event.sender?.id;
+      const text = event.message.text || '';
+      if (!text) continue;
+
+      const notification = {
+        id: `messenger-${event.message.mid || senderId + '-' + event.timestamp}`,
+        source: 'messenger',
+        sender: senderId || 'Unknown',
+        channel: senderId || 'Messenger',
+        preview: text.slice(0, 120),
+        timestamp: event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString(),
+        priority: 1,
+        metadata: {
+          platformMessageId: event.message.mid,
+          threadId: senderId,
+        },
+      };
+
+      // Resolve sender name asynchronously — update store entry if it changes
+      resolveSenderName(senderId).then((name) => {
+        if (name !== senderId) {
+          notification.sender = name;
+          notification.channel = name;
+        }
+        handleIncoming(notification);
+      }).catch(() => handleIncoming(notification));
+    }
+  }
+
+  // Meta requires a 200 response quickly to avoid retries
+  res.sendStatus(200);
 });
+
+async function resolveSenderName(psid) {
+  const token = require('../services/tokenStore').get('messenger')?.accessToken;
+  if (!token || !psid) return psid;
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${psid}?fields=name&access_token=${token}`);
+    const data = await res.json();
+    return data.name || psid;
+  } catch {
+    return psid;
+  }
+}
 
 module.exports = router;
 module.exports.handleIncoming = handleIncoming;
