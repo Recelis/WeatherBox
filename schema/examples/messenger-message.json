@@ -1,0 +1,13 @@
+{
+  "id": "messenger-12345678901234567",
+  "source": "messenger",
+  "sender": "John Doe",
+  "channel": "John Doe",
+  "preview": "Hey are you free tonight?",
+  "timestamp": "2026-05-31T05:50:00Z",
+  "priority": 1,
+  "metadata": {
+    "platformMessageId": "12345678901234567",
+    "threadId": "t_67890"
+  }
+}

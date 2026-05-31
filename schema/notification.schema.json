@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "weatherbox-notification",
+  "title": "WeatherBox Notification",
+  "description": "Unified notification schema used across MQTT, Serial UART, and WebSocket layers",
+  "type": "object",
+  "required": ["id", "source", "sender", "channel", "preview", "timestamp", "priority"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique notification ID (used for deduplication). Format: <source>-<platform-message-id>"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["slack", "teams", "messenger", "iot"],
+      "description": "Origin platform of the notification"
+    },
+    "sender": {
+      "type": "string",
+      "maxLength": 32,
+      "description": "Display name of the person or system that sent the message"
+    },
+    "channel": {
+      "type": "string",
+      "maxLength": 32,
+      "description": "Channel, conversation, or topic name"
+    },
+    "preview": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "Truncated message body shown on TFT and feed UI"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when the message was originally sent"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "0=low (dimmed), 1=normal, 2=elevated, 3=urgent (yellow highlight on TFT)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional platform-specific fields. Not displayed on TFT; available to rules engine and feed UI.",
+      "properties": {
+        "platformMessageId": { "type": "string" },
+        "threadId": { "type": "string" },
+        "workspaceOrTenant": { "type": "string" },
+        "avatarUrl": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

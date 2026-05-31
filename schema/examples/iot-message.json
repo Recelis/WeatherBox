@@ -1,0 +1,13 @@
+{
+  "id": "iot-doorbell-1717171600",
+  "source": "iot",
+  "sender": "Front Door",
+  "channel": "doorbell",
+  "preview": "Motion detected at front door.",
+  "timestamp": "2026-05-31T05:46:40Z",
+  "priority": 2,
+  "metadata": {
+    "platformMessageId": "1717171600",
+    "workspaceOrTenant": "home"
+  }
+}

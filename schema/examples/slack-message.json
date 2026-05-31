@@ -1,0 +1,14 @@
+{
+  "id": "slack-C04AB1234-1717171717.123456",
+  "source": "slack",
+  "sender": "jackylui",
+  "channel": "#alerts",
+  "preview": "Deploy to production is live. All checks passed.",
+  "timestamp": "2026-05-31T06:32:00Z",
+  "priority": 3,
+  "metadata": {
+    "platformMessageId": "1717171717.123456",
+    "threadId": null,
+    "workspaceOrTenant": "my-workspace"
+  }
+}
