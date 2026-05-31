@@ -4,70 +4,41 @@
 #include "WiFi.h"
 #include <Preferences.h>
 
-#include <Location.hpp>
-#include <Weather.hpp>
 #include <MegaCommunication.h>
 #include <Environment.hpp>
-#include <CurrentDate.hpp>
 #include <IntervalFetcher.hpp>
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
-// refetch every 10 minutes
-#define WEATHER_REFETCH_INTERVAL_MS 600000
-/*
-  ESP32 Weather built on PlatformIO.
+// MQTT topic the Node.js server publishes notification batches to
+#define NOTIFICATIONS_SUBSCRIBE_TOPIC "weatherbox/notifications"
 
-    Functionality
-      Config Mode
-        sets EEPROM using Preferences.h for wifi ssid and password
+// Heartbeat to AWS IoT every 10 minutes to keep the connection alive
+#define HEARTBEAT_INTERVAL_MS 600000
 
-      Start
-        on start, will get location of Weather Viewer using IP address
-
-      Every half hour
-        calls open-weather endpoint
-        extracts 7 days weather data using ArduinoJSON and builds an object containing resulting data
-        serialises results and sends to Arduino Mega.
-
-*/
-
-// initialise Location object
-Location location;
-
-// initialise weather object
-Weather weather;
-
-// initialise communication object
-MegaCommunication megaCommunication;
-
-// initialise environment object
-Environment environment;
-
-// initialise day of week object
-CurrentDate currentDate;
-
-// initialise class for refetching
-IntervalFetcher intervalFetcher = IntervalFetcher(WEATHER_REFETCH_INTERVAL_MS);
-
-// The MQTT topics that this device should publish/subscribe
-#define AWS_IOT_PUBLISH_TOPIC "esp32/pub"
-#define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
-
-#define MICROSECONDS_IN_SECOND 1000
-#define SECONDS_IN_MINUTE 60
-#define PUBLISH_MICROSECONDS 2 * SECONDS_IN_MINUTE *MICROSECONDS_IN_SECOND
-
-#define LOOP_MICROSECONDS 100
+#define LOOP_DELAY_MS 100
 
 WiFiClientSecure net = WiFiClientSecure();
-MQTTClient client = MQTTClient(256);
+
+// Increase MQTT buffer to handle up to 8 notifications × ~200 bytes each
+MQTTClient client = MQTTClient(6000);
+
 Environment env = Environment();
+MegaCommunication megaCommunication;
+IntervalFetcher heartbeatTimer = IntervalFetcher(HEARTBEAT_INTERVAL_MS);
+
+// ── MQTT message handler ──────────────────────────────────────────────────────
 
 void messageHandler(String &topic, String &payload)
 {
-  Serial.println("incoming: " + topic + " - " + payload);
+  if (topic != NOTIFICATIONS_SUBSCRIBE_TOPIC) return;
+
+  // Forward the raw JSON batch directly to the Mega over Serial.
+  // The Mega's Communication library buffers until '\n' and then parses.
+  megaCommunication.sendRaw(payload.c_str());
 }
+
+// ── WiFi ──────────────────────────────────────────────────────────────────────
 
 void connectWifi()
 {
@@ -78,7 +49,6 @@ void connectWifi()
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.println("Connecting to Wi-Fi");
-
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -87,28 +57,24 @@ void connectWifi()
   Serial.println("Wi-Fi Connected!");
 }
 
+// ── AWS IoT MQTT ──────────────────────────────────────────────────────────────
+
 void connectAWS()
 {
-  // Get variables from EEPROM (Preference.h)
-  const char *THING_NAME = env.get(Environment::THING_NAME);
-  const char *AWS_CERT_CA = env.get(Environment::AWS_CERT_CA);
-  const char *AWS_CERT_CRT = env.get(Environment::AWS_CERT_CRT);
-  const char *AWS_CERT_PRIVATE = env.get(Environment::AWS_CERT_PRIVATE_KEY);
-  const char *AWS_IOT_ENDPOINT = env.get(Environment::AWS_IOT_ENDPOINT);
+  const char *THING_NAME     = env.get(Environment::THING_NAME);
+  const char *AWS_CERT_CA    = env.get(Environment::AWS_CERT_CA);
+  const char *AWS_CERT_CRT   = env.get(Environment::AWS_CERT_CRT);
+  const char *AWS_CERT_PRIV  = env.get(Environment::AWS_CERT_PRIVATE_KEY);
+  const char *AWS_ENDPOINT   = env.get(Environment::AWS_IOT_ENDPOINT);
 
-  // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
-  net.setPrivateKey(AWS_CERT_PRIVATE);
+  net.setPrivateKey(AWS_CERT_PRIV);
 
-  // Connect to the MQTT broker on the AWS endpoint we defined earlier
-  client.begin(AWS_IOT_ENDPOINT, 8883, net);
-
-  // Create a message handler
+  client.begin(AWS_ENDPOINT, 8883, net);
   client.onMessage(messageHandler);
 
-  Serial.println("Connecting to AWS IOT");
-
+  Serial.println("Connecting to AWS IoT");
   while (!client.connect(THING_NAME))
   {
     Serial.print(".");
@@ -117,80 +83,44 @@ void connectAWS()
 
   if (!client.connected())
   {
-    Serial.println("AWS IoT Timeout!");
+    Serial.println("AWS IoT connection timed out");
     return;
   }
-  Serial.println("Connected to AWS IOT!");
 
-  // Subscribe to a topic
-  client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
-
-  Serial.println("AWS IoT Connected!");
+  client.subscribe(NOTIFICATIONS_SUBSCRIBE_TOPIC);
+  Serial.println("AWS IoT connected — subscribed to " NOTIFICATIONS_SUBSCRIBE_TOPIC);
 }
 
-void getWeatherData()
-{
-  location.init();
-  location.request();
-  if (!location.isSuccess)
-  {
-    return;
-  }
-
-  currentDate.configure(location.getLatitude(), location.getLongitude());
-  currentDate.init();
-  currentDate.request();
-
-  if (!currentDate.isSuccess)
-  {
-    return;
-  }
-  weather.configure(env.get(Environment::WEATHER_API_KEY), location.getLatitude(), location.getLongitude());
-  weather.init();
-  weather.request();
-}
+// ── Setup & loop ──────────────────────────────────────────────────────────────
 
 void setup()
 {
   Serial.begin(9600);
-  Serial.println("Starting Program");
+  Serial.println("WeatherBox starting");
   env.begin("ESP32Monitoring");
   connectWifi();
-
-  // connectAWS();
-  // publishMessage();
+  connectAWS();
 }
 
 void loop()
 {
-  // get weather and display on screen
-  if (intervalFetcher.shouldFetch())
+  // Process incoming MQTT messages
+  client.loop();
+
+  // Reconnect if connection dropped
+  if (!client.connected())
   {
-    getWeatherData();
-    // if newWeatherData then send to Mega
-    if (location.isSuccess && currentDate.isSuccess && weather.isSuccess)
-    {
-      Serial.println("Sending new Data:");
-      char *sevenDayForecast = weather.getData();
-      String dayOfWeek = currentDate.getDayOfWeek();
-      String city = location.getCity();
-      megaCommunication.sendData(sevenDayForecast, city, dayOfWeek);
-      delete[] sevenDayForecast;
-    }
-    else
-    {
-      if (!location.isSuccess)
-        Serial.print("Location ");
-      if (!currentDate.isSuccess)
-        Serial.print("CurrentDate ");
-      if (!weather.isSuccess)
-        Serial.print("Weather ");
-      Serial.println("Failure when requesting weather data");
-    }
+    Serial.println("MQTT disconnected — reconnecting");
+    connectAWS();
+  }
+
+  // Heartbeat publish every 10 minutes to keep the AWS IoT session alive
+  if (heartbeatTimer.shouldFetch())
+  {
+    client.publish("weatherbox/heartbeat", "{\"status\":\"alive\"}");
     Serial.print("Free heap: ");
     Serial.println(ESP.getFreeHeap());
   }
 
-  // check regularly
-  delay(LOOP_MICROSECONDS);
+  delay(LOOP_DELAY_MS);
 }

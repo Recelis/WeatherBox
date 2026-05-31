@@ -10,6 +10,7 @@ public:
     MegaCommunication();
     ~MegaCommunication();
     void sendData(char *sevenDayForecast, String city, String dayOfWeek);
+    void sendRaw(const char *json);
 };
 
 #endif

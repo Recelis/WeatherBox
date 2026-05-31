@@ -25,6 +25,15 @@ void MegaCommunication::sendData(char *sevenDayForecast, String location, String
   Serial.println(output);
 }
 
+// Forwards a pre-serialised notification batch JSON string to the Mega.
+// The Mega's Communication library buffers until '\n', so println is correct.
+void MegaCommunication::sendRaw(const char *json)
+{
+  Serial1.println(json);
+  Serial.println("Forwarding to Mega:");
+  Serial.println(json);
+}
+
 MegaCommunication::~MegaCommunication()
 {
 }
