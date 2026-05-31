@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "weatherbox-notification-batch",
+  "title": "WeatherBox Notification Batch",
+  "description": "Batch envelope sent over MQTT and Serial UART to the ESP32/Mega. Entire serialised payload must fit in 6000 bytes (Mega Serial buffer limit).",
+  "type": "object",
+  "required": ["notifications"],
+  "properties": {
+    "notifications": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "notification.schema.json" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "teams-19:abc123@thread.v2-1717171800000",
+  "source": "teams",
+  "sender": "Bob Smith",
+  "channel": "General",
+  "preview": "Standup moved to 3pm today, same link.",
+  "timestamp": "2026-05-31T06:30:00Z",
+  "priority": 1,
+  "metadata": {
+    "platformMessageId": "1717171800000",
+    "threadId": "19:abc123@thread.v2",
+    "workspaceOrTenant": "mycompany.onmicrosoft.com"
+  }
+}
