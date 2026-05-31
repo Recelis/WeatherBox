@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherBox Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; }
+
+    nav a {
+      color: #888;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    nav a:hover, nav a.active { background: #2a2a2a; color: #e0e0e0; }
+
+    .status-pills { margin-left: auto; display: flex; gap: 8px; }
+    .pill {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: #2a2a2a;
+      color: #666;
+    }
+    .pill.connected { background: #1a3a1a; color: #4ade80; }
+
+    main { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+
+    .section { margin-bottom: 32px; }
+    .section h2 { font-size: 15px; font-weight: 600; color: #aaa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Rules list */
+    #rules-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .rule-row {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr 80px 40px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .rule-row select, .rule-row input {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e0e0e0;
+      padding: 5px 8px;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .rule-row select:focus, .rule-row input:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .p0 { background: #1a1a1a; color: #666; }
+    .p1 { background: #1a2a3a; color: #60a5fa; }
+    .p2 { background: #2a1a3a; color: #c084fc; }
+    .p3 { background: #3a2a00; color: #fbbf24; }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .btn-icon:hover { color: #ef4444; background: #2a1a1a; }
+
+    .btn {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 8px 16px;
+    }
+    .btn:hover { background: #333; }
+    .btn.primary { background: #1a3a5a; border-color: #2a5a8a; color: #60a5fa; }
+    .btn.primary:hover { background: #1e4a70; }
+
+    .actions { display: flex; gap: 8px; margin-top: 12px; }
+
+    /* Feed */
+    #feed-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .notif-row {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .notif-row.priority-3 { border-color: #7a6000; }
+
+    .source-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-slack    { background: #3a1a4a; color: #e879f9; }
+    .badge-teams    { background: #1a2a4a; color: #60a5fa; }
+    .badge-messenger{ background: #1a2a3a; color: #34d399; }
+    .badge-iot      { background: #2a1a0a; color: #fb923c; }
+
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-meta { font-size: 12px; color: #666; margin-bottom: 2px; }
+    .notif-meta strong { color: #aaa; }
+    .notif-preview { font-size: 14px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .notif-time { font-size: 11px; color: #555; flex-shrink: 0; }
+
+    .empty { color: #555; font-size: 14px; padding: 24px 0; text-align: center; }
+
+    .save-banner {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1a3a1a;
+      border: 1px solid #2a6a2a;
+      color: #4ade80;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>WeatherBox</h1>
+  <nav>
+    <a href="#rules" class="active" onclick="showTab('rules',this)">Rules</a>
+    <a href="#feed" onclick="showTab('feed',this)">Live Feed</a>
+  </nav>
+  <div class="status-pills" id="status-pills">
+    <span class="pill" id="pill-slack">Slack</span>
+    <span class="pill" id="pill-teams">Teams</span>
+    <span class="pill" id="pill-messenger">Messenger</span>
+  </div>
+</header>
+
+<main>
+  <!-- Rules tab -->
+  <div id="tab-rules">
+    <div class="section">
+      <h2>Notification Rules <span style="color:#555;font-size:12px;font-weight:400;text-transform:none">(evaluated top-down, first match wins)</span></h2>
+      <div id="rules-list"></div>
+      <div class="actions">
+        <button class="btn" onclick="addRule()">+ Add Rule</button>
+        <button class="btn primary" onclick="saveRules()">Save Rules</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feed tab -->
+  <div id="tab-feed" style="display:none">
+    <div class="section">
+      <h2>Live Notifications <span id="feed-ws-status" style="color:#555;font-size:12px;font-weight:400;text-transform:none"></span></h2>
+      <div id="feed-list"><p class="empty">No notifications yet.</p></div>
+    </div>
+  </div>
+</main>
+
+<div class="save-banner" id="save-banner">Rules saved ✓</div>
+
+<script>
+  const SOURCES = ['slack','teams','messenger','iot'];
+  const PRIORITY_LABELS = ['0 — Low','1 — Normal','2 — Elevated','3 — Urgent'];
+
+  let rules = [], maxMessages = 8, deduplicateWindowSeconds = 300;
+
+  // ── Bootstrap ────────────────────────────────────────────────────────────────
+
+  async function init() {
+    await Promise.all([loadStatus(), loadRules(), loadFeed()]);
+    connectWebSocket();
+  }
+
+  async function loadStatus() {
+    const data = await fetchJSON('/auth/status');
+    for (const platform of ['slack','teams','messenger']) {
+      const pill = document.getElementById('pill-' + platform);
+      if (data[platform]) pill.classList.add('connected');
+    }
+  }
+
+  async function loadRules() {
+    const data = await fetchJSON('/dashboard/rules');
+    rules = data.rules || [];
+    maxMessages = data.maxMessages ?? 8;
+    deduplicateWindowSeconds = data.deduplicateWindowSeconds ?? 300;
+    renderRules();
+  }
+
+  async function loadFeed() {
+    const data = await fetchJSON('/dashboard/feed');
+    const list = document.getElementById('feed-list');
+    if (!data.length) return;
+    list.innerHTML = '';
+    data.forEach(n => list.appendChild(makeNotifRow(n)));
+  }
+
+  // ── Rules ────────────────────────────────────────────────────────────────────
+
+  function renderRules() {
+    const list = document.getElementById('rules-list');
+    list.innerHTML = '';
+    rules.forEach((rule, i) => list.appendChild(makeRuleRow(rule, i)));
+    if (!rules.length) list.innerHTML = '<p class="empty">No rules — all messages will be dropped. Add a rule to start.</p>';
+  }
+
+  function makeRuleRow(rule, index) {
+    const row = document.createElement('div');
+    row.className = 'rule-row';
+    row.dataset.index = index;
+
+    row.innerHTML = `
+      <select onchange="updateRule(${index},'source',this.value)">
+        ${SOURCES.map(s => `<option value="${s}"${rule.source===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <input type="text" placeholder="channel (optional)" value="${rule.channel||''}" onchange="updateRule(${index},'channel',this.value)">
+      <input type="text" placeholder="sender (optional)" value="${rule.sender||''}" onchange="updateRule(${index},'sender',this.value)">
+      <select onchange="updateRule(${index},'priority',+this.value)">
+        ${PRIORITY_LABELS.map((l,v)=>`<option value="${v}"${rule.priority===v?' selected':''}>${l}</option>`).join('')}
+      </select>
+      <button class="btn-icon" title="Remove rule" onclick="removeRule(${index})">×</button>
+    `;
+    return row;
+  }
+
+  function addRule() {
+    rules.push({ source: 'slack', priority: 1 });
+    renderRules();
+  }
+
+  function removeRule(index) {
+    rules.splice(index, 1);
+    renderRules();
+  }
+
+  function updateRule(index, field, value) {
+    if (value === '') delete rules[index][field];
+    else rules[index][field] = value;
+  }
+
+  async function saveRules() {
+    await fetchJSON('/dashboard/rules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rules, maxMessages, deduplicateWindowSeconds }),
+    });
+    const banner = document.getElementById('save-banner');
+    banner.style.display = 'block';
+    setTimeout(() => banner.style.display = 'none', 2500);
+  }
+
+  // ── Feed ─────────────────────────────────────────────────────────────────────
+
+  function makeNotifRow(n) {
+    const row = document.createElement('div');
+    row.className = `notif-row priority-${n.priority}`;
+    const time = new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    row.innerHTML = `
+      <span class="source-badge badge-${n.source}">${n.source.toUpperCase()}</span>
+      <div class="notif-body">
+        <div class="notif-meta"><strong>${esc(n.sender)}</strong> in ${esc(n.channel)}</div>
+        <div class="notif-preview">${esc(n.preview)}</div>
+      </div>
+      <span class="notif-time">${time}</span>
+    `;
+    return row;
+  }
+
+  function connectWebSocket() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const statusEl = document.getElementById('feed-ws-status');
+
+    ws.onopen = () => { statusEl.textContent = '● live'; statusEl.style.color = '#4ade80'; };
+    ws.onclose = () => { statusEl.textContent = '○ disconnected'; statusEl.style.color = '#ef4444'; setTimeout(connectWebSocket, 3000); };
+
+    ws.onmessage = (evt) => {
+      const msg = JSON.parse(evt.data);
+      if (msg.type !== 'notification') return;
+      const list = document.getElementById('feed-list');
+      const empty = list.querySelector('.empty');
+      if (empty) empty.remove();
+      list.insertBefore(makeNotifRow(msg.data), list.firstChild);
+    };
+  }
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+
+  function showTab(name, anchor) {
+    document.querySelectorAll('main > div').forEach(d => d.style.display = 'none');
+    document.getElementById('tab-' + name).style.display = '';
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    anchor.classList.add('active');
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────────
+
+  async function fetchJSON(url, opts) {
+    const res = await fetch(url, opts);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>
