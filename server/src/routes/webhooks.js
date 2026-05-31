@@ -84,11 +84,47 @@ function verifySlackSignature(req) {
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(slackSig));
 }
 
-// ── Teams (stub — filled in by AC6) ──────────────────────────────────────────
+// ── MS Teams (Graph change notifications) ─────────────────────────────────────
 
 router.post('/teams', (req, res) => {
-  res.status(501).json({ error: 'Teams webhook not yet implemented' });
+  // Graph sends a validationToken query param when first registering the subscription
+  if (req.query.validationToken) {
+    return res.status(200).type('text/plain').send(req.query.validationToken);
+  }
+
+  if (!verifyTeamsClientState(req.body)) return res.status(401).send('Invalid client state');
+
+  const items = req.body?.value ?? [];
+  for (const item of items) {
+    const msg = item.resourceData;
+    if (!msg) continue;
+
+    const notification = {
+      id: `teams-${msg.id || item.subscriptionId + '-' + Date.now()}`,
+      source: 'teams',
+      sender: msg.from?.user?.displayName || msg.from?.application?.displayName || 'Unknown',
+      channel: msg.channelIdentity?.channelId || msg.chatId || 'Teams',
+      preview: (msg.body?.content || '').replace(/<[^>]+>/g, '').slice(0, 120),
+      timestamp: msg.createdDateTime || new Date().toISOString(),
+      priority: 1,
+      metadata: {
+        platformMessageId: msg.id,
+        threadId: msg.replyToId || null,
+        workspaceOrTenant: msg.channelIdentity?.teamId || null,
+      },
+    };
+
+    handleIncoming(notification);
+  }
+
+  res.sendStatus(202);
 });
+
+function verifyTeamsClientState(body) {
+  const expectedState = process.env.TEAMS_CLIENT_SECRET?.slice(0, 16) || 'weatherbox';
+  const items = body?.value ?? [];
+  return items.every((item) => !item.clientState || item.clientState === expectedState);
+}
 
 // ── Messenger (stub — filled in by AC7) ──────────────────────────────────────
 
