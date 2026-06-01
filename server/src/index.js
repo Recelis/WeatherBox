@@ -27,8 +27,4 @@ httpServer.listen(PORT, async () => {
 
 initMqtt();
 
-if (process.env.WEATHER_API_KEY) {
-  weatherPoller.start();
-} else {
-  console.log('WEATHER_API_KEY not set — weather poller disabled. Set it in .env to enable.');
-}
+weatherPoller.start();
