@@ -5,6 +5,7 @@ const { initMqtt } = require('./services/mqtt');
 const { attachWebSocket } = require('./services/websocket');
 const tokenStore = require('./services/tokenStore');
 const teamsSubscription = require('./services/teamsSubscription');
+const weatherPoller = require('./services/weatherPoller');
 
 const PORT = process.env.PORT || 3000;
 
@@ -25,3 +26,9 @@ httpServer.listen(PORT, async () => {
 });
 
 initMqtt();
+
+if (process.env.WEATHER_API_KEY) {
+  weatherPoller.start();
+} else {
+  console.log('WEATHER_API_KEY not set — weather poller disabled. Set it in .env to enable.');
+}
