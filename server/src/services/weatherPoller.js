@@ -6,21 +6,26 @@ const IPAPI_URL = 'https://ipapi.co/json/';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 let intervalId = null;
+let cachedLocation = null; // ipapi.co is rate-limited; cache after first call
 
 // ── Location ──────────────────────────────────────────────────────────────────
 
 async function getLocation() {
-  // Use fixed coords from env if provided — avoids a network call every hour
+  // Fixed coords in .env take priority — set these to avoid ipapi.co entirely
   const lat = parseFloat(process.env.WEATHER_LAT);
   const lon = parseFloat(process.env.WEATHER_LON);
   if (!isNaN(lat) && !isNaN(lon)) {
     return { lat, lon, city: process.env.WEATHER_CITY || 'Home' };
   }
 
+  // Return cached result so ipapi.co is only called once per server run
+  if (cachedLocation) return cachedLocation;
+
   const res = await fetch(IPAPI_URL);
-  if (!res.ok) throw new Error(`ipapi.co returned ${res.status}`);
+  if (!res.ok) throw new Error(`ipapi.co returned ${res.status} — set WEATHER_LAT and WEATHER_LON in .env to skip geolocation`);
   const data = await res.json();
-  return { lat: data.latitude, lon: data.longitude, city: data.city || 'Unknown' };
+  cachedLocation = { lat: data.latitude, lon: data.longitude, city: data.city || 'Unknown' };
+  return cachedLocation;
 }
 
 // ── Weather fetch ─────────────────────────────────────────────────────────────
