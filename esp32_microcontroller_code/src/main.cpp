@@ -66,8 +66,21 @@ bool connectWifi()
 
 // ── AWS IoT MQTT ──────────────────────────────────────────────────────────────
 
+bool awsCredentialsPresent()
+{
+  const char *name     = env.get(Environment::THING_NAME);
+  const char *endpoint = env.get(Environment::AWS_IOT_ENDPOINT);
+  return name && strlen(name) > 0 && endpoint && strlen(endpoint) > 0;
+}
+
 void connectAWS()
 {
+  if (!awsCredentialsPresent())
+  {
+    Serial.println("AWS IoT credentials not configured — skipping MQTT. Flash config_upload to enable.");
+    return;
+  }
+
   const char *THING_NAME    = env.get(Environment::THING_NAME);
   const char *AWS_CERT_CA   = env.get(Environment::AWS_CERT_CA);
   const char *AWS_CERT_CRT  = env.get(Environment::AWS_CERT_CRT);
@@ -120,7 +133,7 @@ void loop()
 {
   client.loop();
 
-  if (!client.connected())
+  if (!client.connected() && awsCredentialsPresent())
   {
     Serial.println("MQTT disconnected — reconnecting");
     connectAWS();
