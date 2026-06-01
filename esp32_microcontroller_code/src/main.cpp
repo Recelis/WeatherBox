@@ -7,65 +7,72 @@
 #include <MegaCommunication.h>
 #include <Environment.hpp>
 #include <IntervalFetcher.hpp>
+#include <WiFiProvisioner.h>
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);
 
-// MQTT topic the Node.js server publishes notification batches to
 #define NOTIFICATIONS_SUBSCRIBE_TOPIC "weatherbox/notifications"
-
-// Heartbeat to AWS IoT every 10 minutes to keep the connection alive
-#define HEARTBEAT_INTERVAL_MS 600000
-
-#define LOOP_DELAY_MS 100
+#define WIFI_CONNECT_TIMEOUT_MS       10000
+#define HEARTBEAT_INTERVAL_MS         600000
+#define LOOP_DELAY_MS                 100
 
 WiFiClientSecure net = WiFiClientSecure();
-
-// Increase MQTT buffer to handle up to 8 notifications × ~200 bytes each
-MQTTClient client = MQTTClient(6000);
-
-Environment env = Environment();
+MQTTClient client    = MQTTClient(6000);
+Environment env      = Environment();
 MegaCommunication megaCommunication;
 IntervalFetcher heartbeatTimer = IntervalFetcher(HEARTBEAT_INTERVAL_MS);
+WiFiProvisioner provisioner;
 
 // ── MQTT message handler ──────────────────────────────────────────────────────
 
 void messageHandler(String &topic, String &payload)
 {
   if (topic != NOTIFICATIONS_SUBSCRIBE_TOPIC) return;
-
-  // Forward the raw JSON batch directly to the Mega over Serial.
-  // The Mega's Communication library buffers until '\n' and then parses.
   megaCommunication.sendRaw(payload.c_str());
 }
 
-// ── WiFi ──────────────────────────────────────────────────────────────────────
+// ── WiFi — returns true on success, false on timeout ─────────────────────────
 
-void connectWifi()
+bool connectWifi()
 {
-  const char *WIFI_SSID = env.get(Environment::WIFI_SSID);
-  const char *WIFI_PASSWORD = env.get(Environment::WIFI_PASSWORD);
+  const char *ssid     = env.get(Environment::WIFI_SSID);
+  const char *password = env.get(Environment::WIFI_PASSWORD);
+
+  if (!ssid || strlen(ssid) == 0)
+  {
+    Serial.println("No WiFi credentials stored");
+    return false;
+  }
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
 
-  Serial.println("Connecting to Wi-Fi");
+  unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED)
   {
+    if (millis() - start > WIFI_CONNECT_TIMEOUT_MS)
+    {
+      Serial.println("\nWiFi connection timed out");
+      return false;
+    }
     delay(500);
     Serial.print(".");
   }
-  Serial.println("Wi-Fi Connected!");
+
+  Serial.println("\nWiFi connected: " + WiFi.localIP().toString());
+  return true;
 }
 
 // ── AWS IoT MQTT ──────────────────────────────────────────────────────────────
 
 void connectAWS()
 {
-  const char *THING_NAME     = env.get(Environment::THING_NAME);
-  const char *AWS_CERT_CA    = env.get(Environment::AWS_CERT_CA);
-  const char *AWS_CERT_CRT   = env.get(Environment::AWS_CERT_CRT);
-  const char *AWS_CERT_PRIV  = env.get(Environment::AWS_CERT_PRIVATE_KEY);
-  const char *AWS_ENDPOINT   = env.get(Environment::AWS_IOT_ENDPOINT);
+  const char *THING_NAME    = env.get(Environment::THING_NAME);
+  const char *AWS_CERT_CA   = env.get(Environment::AWS_CERT_CA);
+  const char *AWS_CERT_CRT  = env.get(Environment::AWS_CERT_CRT);
+  const char *AWS_CERT_PRIV = env.get(Environment::AWS_CERT_PRIVATE_KEY);
+  const char *AWS_ENDPOINT  = env.get(Environment::AWS_IOT_ENDPOINT);
 
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
@@ -98,23 +105,27 @@ void setup()
   Serial.begin(9600);
   Serial.println("WeatherBox starting");
   env.begin("ESP32Monitoring");
-  connectWifi();
+
+  if (!connectWifi())
+  {
+    // Credentials missing or wrong — launch captive portal so the user can
+    // enter new credentials from their phone. Reboots automatically on save.
+    provisioner.begin();
+  }
+
   connectAWS();
 }
 
 void loop()
 {
-  // Process incoming MQTT messages
   client.loop();
 
-  // Reconnect if connection dropped
   if (!client.connected())
   {
     Serial.println("MQTT disconnected — reconnecting");
     connectAWS();
   }
 
-  // Heartbeat publish every 10 minutes to keep the AWS IoT session alive
   if (heartbeatTimer.shouldFetch())
   {
     client.publish("weatherbox/heartbeat", "{\"status\":\"alive\"}");
