@@ -15,7 +15,7 @@ function initMqtt() {
     cert: fs.readFileSync(AWS_IOT_CERT_PATH),
     key: fs.readFileSync(AWS_IOT_KEY_PATH),
     ca: fs.readFileSync(AWS_IOT_CA_PATH),
-    clientId: `weatherbox-server-${Date.now()}`,
+    clientId: `sdk-nodejs-weatherbox-server-${Date.now()}`,
     reconnectPeriod: 5000,
   });
 
