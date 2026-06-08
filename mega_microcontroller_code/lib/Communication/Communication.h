@@ -16,6 +16,7 @@ public:
     bool receiveData();
     char * getReceivedChars();
     void setNewData(bool newDataFlag);
+    void sendPollRequest();
 };
 
 #endif

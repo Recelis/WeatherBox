@@ -35,13 +35,13 @@ class LCD
 private:
     MCUFRIEND_kbv tft;
     unsigned long lastDataMs = 0;
-    bool isIdle = false;
+    bool _idle = false;
+    bool _pollSent = false;
 
     void drawHeader();
     void drawRow(int rowIndex, const char *source, const char *sender,
                  const char *channel, const char *preview,
                  const char *timeStr, uint8_t priority);
-    void drawIdleScreen();
     uint16_t sourceColor(const char *source);
     void truncate(const char *src, char *dst, uint8_t maxLen);
 
@@ -51,7 +51,8 @@ public:
     void startScreen();
     void refreshScreen();
     void drawScreen(char *receivedChars);
-    void checkIdle();
+    // Returns true once when idle timeout first fires — caller should send a poll request.
+    bool checkIdle();
 };
 
 #endif

@@ -53,6 +53,12 @@ void Communication::setNewData(bool newDataFlag){
   newData = newDataFlag;
 }
 
+// Sends a single poll byte to the ESP32, asking it to re-send its last batch.
+void Communication::sendPollRequest()
+{
+  Serial1.write('P');
+}
+
 Communication::~Communication()
 {
 }

@@ -70,21 +70,22 @@ void LCD::drawScreen(char *receivedChars)
         row++;
     }
 
-    if (row == 0) drawIdleScreen();
-
     lastDataMs = millis();
-    isIdle = false;
+    _idle = false;
+    _pollSent = false;
 }
 
-// Called from loop() to show idle screen after IDLE_TIMEOUT_MS with no data
-void LCD::checkIdle()
+// Returns true once when the idle timeout first fires — caller sends a poll request.
+// Resets automatically when drawScreen() is called with new data.
+bool LCD::checkIdle()
 {
-    if (!isIdle && millis() - lastDataMs > IDLE_TIMEOUT_MS)
+    if (!_pollSent && millis() - lastDataMs > IDLE_TIMEOUT_MS)
     {
-        refreshScreen();
-        drawIdleScreen();
-        isIdle = true;
+        _idle = true;
+        _pollSent = true;
+        return true;
     }
+    return false;
 }
 
 // ── Private drawing helpers ───────────────────────────────────────────────────
@@ -162,14 +163,6 @@ void LCD::drawRow(int rowIndex, const char *source, const char *sender,
     tft.drawFastHLine(0, y + ROW_H - 1, SCREEN_W, DARKGREY);
 }
 
-void LCD::drawIdleScreen()
-{
-    tft.setTextColor(DARKGREY, BLACK);
-    tft.setTextSize(2);
-    int msgLen = 22 * 12; // "No new notifications" × 12px/char
-    tft.setCursor((SCREEN_W - msgLen) / 2, SCREEN_H / 2 - 8);
-    tft.print("No new notifications");
-}
 
 uint16_t LCD::sourceColor(const char *source)
 {

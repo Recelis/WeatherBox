@@ -23,11 +23,15 @@ MegaCommunication megaCommunication;
 IntervalFetcher heartbeatTimer = IntervalFetcher(HEARTBEAT_INTERVAL_MS);
 WiFiProvisioner provisioner;
 
+// Last notification batch received — re-sent to Mega on poll request
+String lastBatch = "";
+
 // ── MQTT message handler ──────────────────────────────────────────────────────
 
 void messageHandler(String &topic, String &payload)
 {
   if (topic != NOTIFICATIONS_SUBSCRIBE_TOPIC) return;
+  lastBatch = payload;
   megaCommunication.sendRaw(payload.c_str());
 }
 
@@ -137,6 +141,13 @@ void loop()
   {
     Serial.println("MQTT disconnected — reconnecting");
     connectAWS();
+  }
+
+  // Respond to poll requests from the Mega ('P' byte sent when its idle timeout fires)
+  if (Serial1.available() && Serial1.read() == 'P' && lastBatch.length() > 0)
+  {
+    Serial.println("Poll request received — re-sending last batch");
+    megaCommunication.sendRaw(lastBatch.c_str());
   }
 
   if (heartbeatTimer.shouldFetch())
