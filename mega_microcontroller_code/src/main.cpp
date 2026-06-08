@@ -22,6 +22,10 @@ void loop()
     myCommunication.setNewData(false);
   }
 
-  // Show idle screen after 5 minutes without new notifications
-  myLCD.checkIdle();
+  // After 5 minutes with no new data, ask the ESP32 to re-send its last batch
+  if (myLCD.checkIdle())
+  {
+    Serial.println("Idle timeout — polling ESP32 for last batch");
+    myCommunication.sendPollRequest();
+  }
 }
