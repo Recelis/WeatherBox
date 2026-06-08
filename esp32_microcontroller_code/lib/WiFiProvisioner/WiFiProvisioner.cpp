@@ -97,29 +97,31 @@ void WiFiProvisioner::_handleSave()
     Serial.print("Trying to connect to: ");
     Serial.println(ssid);
 
-    WiFi.mode(WIFI_STA);
+    // Stay in AP_STA mode so the phone keeps its connection to the AP
+    // and can receive the success/failure response page.
+    WiFi.mode(WIFI_AP_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
 
     unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < 12000)
+    while (WiFi.status() != WL_CONNECTED && millis() - start < 15000)
     {
-        delay(300);
+        _dns.processNextRequest();
+        _server.handleClient();
+        delay(100);
         Serial.print(".");
     }
     Serial.println();
 
     if (WiFi.status() != WL_CONNECTED)
     {
-        // Failed — restart AP and let the user try again
         Serial.println("Connection failed, staying in provisioning mode");
-        _startAP();
-        _dns.start(DNS_PORT, "*", WiFi.softAPIP());
+        WiFi.disconnect();
         _server.send(200, "text/html",
             _buildPage("Wrong password or network not found. Try again.", "err"));
         return;
     }
 
-    // Success — save to Preferences using the same keys Environment reads
+    // Success — save credentials before sending the response
     Serial.println("Connected! Saving credentials");
     Preferences prefs;
     prefs.begin("ESP32Monitoring", false);
@@ -127,10 +129,18 @@ void WiFiProvisioner::_handleSave()
     prefs.putString("WIFI_PASSWORD", password);
     prefs.end();
 
+    // Send response and keep handling requests for 3 seconds so the
+    // phone receives the page before the AP disappears on reboot
     _server.send(200, "text/html",
         _buildPage("Connected! Rebooting WeatherBox&hellip;", "ok"));
 
-    delay(2000);
+    unsigned long flush = millis();
+    while (millis() - flush < 3000)
+    {
+        _server.handleClient();
+        delay(10);
+    }
+
     ESP.restart();
 }
 
